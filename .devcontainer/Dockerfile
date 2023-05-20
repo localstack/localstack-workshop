@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/python:3
+FROM debian
 
 RUN sudo apt update
 

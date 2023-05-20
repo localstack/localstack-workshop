@@ -1,0 +1,9 @@
+FROM gitpod/workspace-full
+
+RUN sudo apt update
+
+# install LocalStack CLI, awslocal, tflocal
+RUN pip install localstack awscli-local[ver1] terraform-local
+
+# install CDK utils
+RUN npm install -g aws-cdk-local aws-cdk
