@@ -1,0 +1,8 @@
+# Learn more about this file at https://www.gitpod.io/docs/references/gitpod-yml
+image:
+  file: .devcontainer/Dockerfile.gitpod
+
+github:
+  prebuilds:
+    # enable for the default branch (defaults to true)
+    master: true
