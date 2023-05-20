@@ -1,7 +1,7 @@
 # Learn more about this file at https://www.gitpod.io/docs/references/gitpod-yml
 image:
   context: .devcontainer
-  file: Dockerfile
+  file: .devcontainer/Dockerfile
 
 github:
   prebuilds:

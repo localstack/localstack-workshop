@@ -1,7 +1,4 @@
 {
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
   "customizations": {
     "codespaces": {
       "openFiles": [
