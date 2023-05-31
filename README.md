@@ -37,7 +37,13 @@ npm install -g aws-cdk-local aws-cdk
 
 ### Part 1: Getting Started - Serverless Apps
 
-...
+Getting started by:
+
+- Installing and starting LocalStack up;
+- Play with a few CLI commmands;
+- Have a look at Web App;
+- Hello World in LocalStack;
+- Deploy a [simple serverless application](https://github.com/localstack/serverless-image-resizer).
 
 ### Part 2: Infrastructure-as-Code Tools
 
