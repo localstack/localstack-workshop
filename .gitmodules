@@ -1,0 +1,6 @@
+[submodule "image-resizer-sample"]
+	path = image-resizer-sample
+	url = https://github.com/localstack/serverless-image-resizer
+[submodule "full-sample-pods-ci"]
+	path = full-sample-pods-ci
+	url = https://github.com/giograno/serverless-api-ecs-apigateway-sample
