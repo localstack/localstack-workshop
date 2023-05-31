@@ -53,7 +53,11 @@ Build and deploy a serverless app on LocalStack with Terraform and CloudFormatio
 
 ### Part 3: LocalStack Persistence and Cloud Pods
 
-...
+The resources created in LocalStack are ephemeral. However, we offer a basis [persistence mechanism](https://docs.localstack.cloud/references/persistence-mechanism/) and a more advanced [Cloud Pods](https://docs.localstack.cloud/user-guide/tools/cloud-pods/) feature for:
+
+- collaboration: share LocalStack state in your organization;
+- seed test environments with real data;
+- creating reproducible sample applications.
 
 ### Part 4: LocalStack in CI Pipelines
 
