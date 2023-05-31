@@ -43,10 +43,13 @@ npm install -g aws-cdk-local aws-cdk
 
 ...
 
-### Part 3: LocalStack in CI Pipelines
+### Part 3: LocalStack Persistence and Cloud Pods
 
 ...
 
-### Part 4: LocalStack Persistence and Cloud Pods
+### Part 4: LocalStack in CI Pipelines
 
-...
+Closing the circle by testing our serverless app in CI with LocalStack and by seeding test data with the use of [Cloud Pods](https://docs.localstack.cloud/user-guide/tools/cloud-pods/).
+
+[aws-workshop-ci](https://github.com/giograno/aws-workshop-ci)
+
