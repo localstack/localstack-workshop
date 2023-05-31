@@ -41,7 +41,9 @@ npm install -g aws-cdk-local aws-cdk
 
 ### Part 2: Infrastructure-as-Code Tools
 
-...
+Build and deploy a serverless app on LocalStack with Terraform and CloudFormation.
+
+[serverless-api-ecs-apigateway-sample](https://github.com/giograno/serverless-api-ecs-apigateway-sample)
 
 ### Part 3: LocalStack Persistence and Cloud Pods
 
