@@ -12,7 +12,6 @@ Note: The project can either be cloned and installed on your local machine, or y
 
 * Docker
 * Python/`pip`
-* Node/`npm` (for CDK tooling)
 * LocalStack Pro API key ([free trial key here](https://app.localstack.cloud))
 
 ## Installation & Getting Started
@@ -43,6 +42,10 @@ awslocal s3 mb s3://demo-bucket
 
 You can create and browse resources in LocalStack also from the research browser.
 Simply, go to our [Web App](https://app.localstack.cloud/), log in, and click on _Resources_ in the top navigation bar. You will gain access to our research browser, where each service has a console to manage its resources.
+
+### Hello World
+
+Every programming language tutorial starts with printing a _Hello World_. Let us have the [equivalent](https://github.com/localstack/localstack-workshop/tree/update-after-aws-zurich/hello-world) in LocalStack.
 
 ## Deploy a Serverless App on LocalStack
 
