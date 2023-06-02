@@ -49,11 +49,11 @@ Every programming language tutorial starts with printing a _Hello World_. Let us
 
 ## Deploy a Serverless App on LocalStack
 
-It's time now to deploy a meaningful [serverless application](https://github.com/localstack/serverless-image-resizer).
+It's time now to deploy a meaningful [serverless application](https://github.com/localstack/serverless-image-resizer/tree/a882f4c050dd8ec4594c35fa5002d4db31c5a834).
 
 ## Infrastructure-as-Code Tools - Cloud Pods - LocalStack in CI
 
 We mostly interacted with LocalStack through the CLI so far. 
 However, large systems are hardly built this way.
 Luckily, LocalStack supports a [wide range of integrations](https://docs.localstack.cloud/user-guide/integrations/) that will cover your favorite Infrastructure-as-Code (IaC) tool.
-In the following [sample](https://github.com/giograno/serverless-api-ecs-apigateway-sample), we will first deploy a complex application with either Terraform or CloudFormation. Then, we will write a small unit test. Finally, we will close the loop by deploying and testing this app in CI with LocalStack.
+In the following [sample](https://github.com/giograno/serverless-api-ecs-apigateway-sample/tree/4bae4b7920da518034237bd95d6b6d0ab607a29d), we will first deploy a complex application with either Terraform or CloudFormation. Then, we will write a small unit test. Finally, we will close the loop by deploying and testing this app in CI with LocalStack.
