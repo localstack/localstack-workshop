@@ -4,9 +4,9 @@ Repository with code samples for the LocalStack workshop.
 
 Note: The project can either be cloned and installed on your local machine, or you can spin up a remote development environment (Gitpod, or Github Codespaces) to access the project directly from your browser.
 
-* **Option 1:** Open project in [Github Codespaces](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=630930347)
-* **Option 2:** Open project in [Gitpod](https://gitpod.io/#https://github.com/localstack/localstack-workshop)
-* **Option 3:** Run project locally (see instructions below)
+* **Option 1:** Open the project in [Github Codespaces](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=630930347)
+* **Option 2:** Open the project in [Gitpod](https://gitpod.io/#https://github.com/localstack/localstack-workshop)
+* **Option 3:** Run the project locally (see instructions below)
 
 ## Prerequisites
 
@@ -15,53 +15,42 @@ Note: The project can either be cloned and installed on your local machine, or y
 * Node/`npm` (for CDK tooling)
 * LocalStack Pro API key ([free trial key here](https://app.localstack.cloud))
 
-## Installation
+## Installation & Getting Started
+
+LocalStack can be started in [different ways](https://docs.localstack.cloud/getting-started/installation/).
+The easiest way (the one we recommend) is through the [LocalStack CLI](https://docs.localstack.cloud/getting-started/installation/#localstack-cli).
 
 First, install the LocalStack command-line interface (CLI):
 ```
 pip install localstack
 ```
-Then we start the LocalStack container locally:
+Then we can simply start the LocalStack container locally:
 ```
 export LOCALSTACK_API_KEY=... # insert your API key here
 DEBUG=1 localstack start
 ```
 
-Additionally, we're also installing the following packages, to make the [`awslocal`](https://github.com/localstack/awscli-local), [`tflocal`](https://github.com/localstack/terraform-local) and [`cdklocal`](https://github.com/localstack/aws-cdk-local) commands available:
+Once LocalStack is running in the Docker container, we can issue CLI commands to create and interact with AWS resources. Let's say, for instance, that we want to create a S3 bucket. 
+If you have the [AWS Command Line Interface](https://aws.amazon.com/cli/) installed on your machine, you can simply type:
 ```
-pip install awscli-local[ver1] terraform-local
-npm install -g aws-cdk-local aws-cdk
+aws --endpoint=http://localhost.localstack.cloud:4566 s3 mb s3://demo-bucket
 ```
 
-## Workshop Sections
+To make things simpler, you might want to install [`awslocal`](https://github.com/localstack/awscli-local), i.e., our wrapper around the AWS CLI. This way, you don't need to set up the endpoint for every CLI command. The previous command would just be:
+```
+awslocal s3 mb s3://demo-bucket
+```
 
-### Part 1: Getting Started - Serverless Apps
+You can create and browse resources in LocalStack also from the research browser.
+Simply, go to our [Web App](https://app.localstack.cloud/), log in, and click on _Resources_ in the top navigation bar. You will gain access to our research browser, where each service has a console to manage its resources.
 
-Getting started by:
+## Deploy a Serverless App on LocalStack
 
-- Installing and starting LocalStack up;
-- Play with a few CLI commmands;
-- Have a look at Web App;
-- Hello World in LocalStack;
-- Deploy a [simple serverless application](https://github.com/localstack/serverless-image-resizer).
+It's time now to deploy a meaningful [serverless application](https://github.com/localstack/serverless-image-resizer).
 
-### Part 2: Infrastructure-as-Code Tools
+## Infrastructure-as-Code Tools - Cloud Pods - LocalStack in CI
 
-Build and deploy a serverless app on LocalStack with Terraform and CloudFormation.
-
-[serverless-api-ecs-apigateway-sample](https://github.com/giograno/serverless-api-ecs-apigateway-sample)
-
-### Part 3: LocalStack Persistence and Cloud Pods
-
-The resources created in LocalStack are ephemeral. However, we offer a basis [persistence mechanism](https://docs.localstack.cloud/references/persistence-mechanism/) and a more advanced [Cloud Pods](https://docs.localstack.cloud/user-guide/tools/cloud-pods/) feature for:
-
-- collaboration: share LocalStack state in your organization;
-- seed test environments with real data;
-- creating reproducible sample applications.
-
-### Part 4: LocalStack in CI Pipelines
-
-Closing the circle by testing our serverless app in CI with LocalStack and by seeding test data with the use of [Cloud Pods](https://docs.localstack.cloud/user-guide/tools/cloud-pods/).
-
-[aws-workshop-ci](https://github.com/giograno/aws-workshop-ci)
-
+We mostly interacted with LocalStack through the CLI so far. 
+However, large systems are hardly built this way.
+Luckily, LocalStack supports a [wide range of integrations](https://docs.localstack.cloud/user-guide/integrations/) that will cover your favorite Infrastructure-as-Code (IaC) tool.
+In the following [sample](https://github.com/giograno/serverless-api-ecs-apigateway-sample), we will first deploy a complex application with either Terraform or CloudFormation. Then, we will write a small unit test. Finally, we will close the loop by deploying and testing this app in CI with LocalStack.
