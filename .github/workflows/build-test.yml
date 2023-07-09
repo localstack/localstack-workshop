@@ -1,0 +1,44 @@
+name: Run tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Start up LocalStack
+        env:
+          LOCALSTACK_API_KEY: ${{ secrets.LOCALSTACK_API_KEY }}
+        run: |
+          docker pull localstack/localstack-pro &
+
+          # install CLI tools
+          pip install --pre localstack localstack-ext awscli-local[ver1]
+
+          # start LocalStack
+          DEBUG=1 localstack start -d
+          localstack wait
+
+      - name: Run simple test
+        env:
+          LOCALSTACK_API_KEY: ${{ secrets.LOCALSTACK_API_KEY }}
+        run: |
+          set -e
+
+          # deploy test resources
+          (cd 00-hello-world; ./deploy.sh)
+
+          # run assertion
+          curl http://testwebsite.s3-website.localhost.localstack.cloud:4566 | grep 'You are running LocalStack'
+
+      - name: Print LocalStack logs
+        run: |
+          localstack logs
+          localstack stop

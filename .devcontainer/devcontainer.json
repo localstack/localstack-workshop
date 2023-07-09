@@ -8,6 +8,5 @@
         "README.md"
       ]
     }
-  },
-  "postStartCommand": "DEBUG=1 localstack start -d"
+  }
 }

@@ -1,0 +1,25 @@
+schema {
+    query: Query
+    mutation: Mutation
+    subscription: Subscription
+}
+
+type Query {
+    getPostsDDB: [Post!]!
+    getPostsRDS: [Post!]!
+}
+
+type Mutation {
+    addPostDDB(id: String!): Post!
+    addPostRDS(id: String!): Post!
+}
+
+type Subscription {
+    addedPost: Post
+    @aws_subscribe(mutations: ["addPostDDB"])
+}
+
+type Post {
+    id: String!
+    time: AWSTimestamp
+}

@@ -1,3 +1,5 @@
+![Build Status](https://github.com/localstack/localstack-workshop/actions/workflows/build-test.yml/badge.svg)
+
 # LocalStack Workshop
 
 Repository with code samples for the LocalStack workshop.
@@ -45,15 +47,26 @@ Simply, go to our [Web App](https://app.localstack.cloud/), log in, and click on
 
 ### Hello World
 
-Every programming language tutorial starts with printing a _Hello World_. Let us have the [equivalent](https://github.com/localstack/localstack-workshop/tree/update-after-aws-zurich/hello-world) in LocalStack.
+Every programming language tutorial starts with printing a _Hello World_. Let us have the [equivalent](https://github.com/localstack/localstack-workshop/tree/main/00-hello-world) in LocalStack.
 
-## Deploy a Serverless App on LocalStack
+## Sample 1: Deploy a Serverless App on LocalStack
 
-It's time now to deploy a meaningful [serverless application](https://github.com/localstack/serverless-image-resizer/tree/a882f4c050dd8ec4594c35fa5002d4db31c5a834).
+As the next step, we'll deploy a [serverless application](./01-serverless-image-resizer) using Lambda, S3, SNS, and other AWS services.
+This is an app to resize images uploaded to an S3 bucket, using Lambda functions and event-driven processing.
+A simple web fronted using HTML and JavaScript provides a way for users to upload images that are resized and listed.
 
-## Infrastructure-as-Code Tools - Cloud Pods - LocalStack in CI
+## Sample 3: Infrastructure-as-Code Tools and Containerized Applications
 
-We mostly interacted with LocalStack through the CLI so far. 
-However, large systems are hardly built this way.
+We mostly interacted with LocalStack through the CLI so far. However, large systems are hardly built this way.
 Luckily, LocalStack supports a [wide range of integrations](https://docs.localstack.cloud/user-guide/integrations/) that will cover your favorite Infrastructure-as-Code (IaC) tool.
-In the following [sample](https://github.com/giograno/serverless-api-ecs-apigateway-sample/tree/4bae4b7920da518034237bd95d6b6d0ab607a29d), we will first deploy a complex application with either Terraform or CloudFormation. Then, we will write a small unit test. Finally, we will close the loop by deploying and testing this app in CI with LocalStack.
+In the following [sample](./02-serverless-api-ecs-apigateway), we will deploy a containerized application (using ECS, Cognito, etc) with either Terraform or CloudFormation.
+
+## Sample 4: AppSync GraphQL APIs for DynamoDB and RDS Aurora PostgreSQL
+
+In this sample, we'll take a closer look at AppSync, a managed services for deploying GraphQL APIs to access data sources like RDS databases or DynamoDB tables.
+The [AppSync GraphQL sample](./03-appsync-graphql-api-cdk) is a simple application that maintaines entries in a database table, and makes them accessible via a GraphQL HTTP endpoint.
+Clients can also subscribe to a WebSocket endpoint to receive real-time updates about new DB entries. The stack is defined via CDK, and deployed fully locally against LocalStack.
+
+## Sample 5: Cloud Pods
+
+Details following soon...

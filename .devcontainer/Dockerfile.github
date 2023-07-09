@@ -2,8 +2,23 @@ FROM mcr.microsoft.com/devcontainers/universal
 
 RUN sudo apt update
 
-# install LocalStack CLI, awslocal, tflocal
-RUN pip install localstack awscli-local[ver1] terraform-local
+# install LocalStack CLI, awslocal, samlocal, tflocal
+# FIXME remove once https://github.com/yaml/pyyaml/issues/601 is fixed
+RUN pip install "setuptools" "wheel"
+RUN pip install --no-build-isolation "Cython<3.0" "pyyaml<5.5"
+RUN pip install localstack awscli-local[ver1] aws-sam-cli-local terraform-local
+RUN pip install --pre --upgrade localstack localstack-ext
 
 # install CDK utils
 RUN npm install -g aws-cdk-local aws-cdk
+
+# default environment variables
+ENV DEBUG=1
+ENV OVERRIDE_IN_DOCKER=0
+ENV EXTRA_CORS_ALLOWED_ORIGINS='*'
+ENV DISABLE_CUSTOM_CORS_APIGATEWAY=1
+ENV PORTS_CHECK_DOCKER_IMAGE=localstack/localstack-pro
+
+# set test environment variables
+ENV AWS_ACCESS_KEY_ID=test
+ENV AWS_SECRET_ACCESS_KEY=test
