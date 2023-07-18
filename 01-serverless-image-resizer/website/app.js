@@ -89,7 +89,7 @@
                 console.log("sending form data", formData);
 
                 // make sure we have the right hostname in the presigned URL
-                url = injectHostnameInUrl(url, functionUrlPresign);
+                let url = injectHostnameInUrl(data.url, functionUrlPresign);
 
                 $.ajax({
                     type: "POST",
