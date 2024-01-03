@@ -95,7 +95,7 @@ To build the web application, navigate to the root directory of the sample appli
 ```shell
 cd client-application-react
 yarn
-yarn build
+NODE_OPTIONS=--openssl-legacy-provider yarn build
 ```
 
 Ensure a `build` directory is created in the `client-application-react` directory.
