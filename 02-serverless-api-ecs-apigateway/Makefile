@@ -9,7 +9,7 @@ usage:                ## Show this help
 install:              ## Install dependencies
 		@which localstack || pip install localstack
 		@which awslocal || pip install awscli-local
-		@which tflocal || pip install terraform-local
+		@which tflocal || pip install --upgrade terraform-local
 
 terraform-setup:      ## Set up Terraform
 		cd terraform; \
@@ -28,7 +28,7 @@ run:                  ## Run the sample app
 		@echo "Building Web assets and uploading to local S3 bucket 🪣"; \
 			cd client-application-react; \
 			test -e node_modules || yarn; \
-			test -e build/index.html || yarn build; \
+			test -e build/index.html || NODE_OPTIONS=--openssl-legacy-provider yarn build; \
 			awslocal s3 mb s3://sample-app; \
 			awslocal s3 sync build s3://sample-app; \
 			API_ID=$$(awslocal apigatewayv2 get-apis | jq -r '.Items[] | select(.Name=="ecsapi-demo") | .ApiId'); \
