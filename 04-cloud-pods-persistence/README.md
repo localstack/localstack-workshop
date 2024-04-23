@@ -12,7 +12,7 @@ $ pip install --upgrade --pre localstack localstack-ext
 
 Using cloud pods requires creating an account on https://app.localstack.cloud, and then using the account credentials to log in to the CLI:
 ```
-$ localstack login
+$ localstack auth login
 ...
 ```
 
