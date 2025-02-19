@@ -15,7 +15,7 @@ jobs:
 
       - name: Start up LocalStack
         env:
-          LOCALSTACK_API_KEY: ${{ secrets.LOCALSTACK_API_KEY }}
+          LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
         run: |
           docker pull localstack/localstack-pro &
 
@@ -28,7 +28,7 @@ jobs:
 
       - name: Run simple test
         env:
-          LOCALSTACK_API_KEY: ${{ secrets.LOCALSTACK_API_KEY }}
+          LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
         run: |
           set -e
 

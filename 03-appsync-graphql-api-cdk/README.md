@@ -33,10 +33,10 @@ We are using the following AWS services and third-party integrations to build ou
 - [`cURL`](https://curl.se/)
 - [`wscat`](https://github.com/websockets/wscat)
 
-Start LocalStack Pro with the `LOCALSTACK_API_KEY` pre-configured:
+Start LocalStack Pro with the `LOCALSTACK_AUTH_TOKEN` pre-configured:
 
 ```sh
-export LOCALSTACK_API_KEY=<your-api-key>
+export LOCALSTACK_AUTH_TOKEN=<your-auth-token>
 localstack start
 ```
 

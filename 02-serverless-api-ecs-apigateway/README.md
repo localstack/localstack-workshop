@@ -39,7 +39,7 @@ We are using the following AWS services and their features to build our infrastr
 Start LocalStack Pro with the appropriate configuration to enable the S3 website to send requests to the container APIs:
 
 ```shell
-export LOCALSTACK_API_KEY=<your-api-key>
+export LOCALSTACK_AUTH_TOKEN=<your-auth-token>
 EXTRA_CORS_ALLOWED_ORIGINS=http://sample-app.s3.localhost.localstack.cloud:4566 DISABLE_CUSTOM_CORS_APIGATEWAY=1 DEBUG=1 localstack start
 ```
 
@@ -197,7 +197,7 @@ localstack pod save file://<path_to_disk>/<pod-name>
 
 The above command will create a zip file named `<pod-name>` to the specified location on the disk.
 
-The `load` command is the inverse operation of the `save` command. It retrieves the content of a previously stored Cloud Pod from the local file system or the LocalStack Web Application and injects it into the application runtime. On an alternate machine, start LocalStack with the API key configured, and pull the Cloud Pod we created previously using the `load` command with the Cloud Pod name as the first argument:
+The `load` command is the inverse operation of the `save` command. It retrieves the content of a previously stored Cloud Pod from the local file system or the LocalStack Web Application and injects it into the application runtime. On an alternate machine, start LocalStack with the auth token configured, and pull the Cloud Pod we created previously using the `load` command with the Cloud Pod name as the first argument:
 
 ```bash
 localstack pod load <pod-name>
@@ -255,12 +255,12 @@ This application sample hosts an example GitHub Action workflow that starts up L
 
 The most relevant steps in the CI pipeline are:
 
-- Starting LocalStack, after setting the API Key as a secret in GitHub.
+- Starting LocalStack, after setting the auth token as a secret in GitHub.
 
 ```yaml
       - name: Start LocalStack
         env:
-          LOCALSTACK_API_KEY: ${{ secrets.LOCALSTACK_API_KEY }}
+          LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
           DNS_ADDRESS: 0
         run: |
           pip install localstack awscli-local[ver1]

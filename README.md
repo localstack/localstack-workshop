@@ -14,7 +14,7 @@ Note: The project can either be cloned and installed on your local machine, or y
 
 * Docker
 * Python/`pip`
-* LocalStack Pro API key ([free trial key here](https://app.localstack.cloud))
+* LocalStack Pro auth token ([free trial key here](https://app.localstack.cloud))
 
 ## Installation & Getting Started
 
@@ -27,7 +27,7 @@ pip install localstack
 ```
 Then we can simply start the LocalStack container locally:
 ```
-export LOCALSTACK_API_KEY=... # insert your API key here
+export LOCALSTACK_AUTH_TOKEN=... # insert your auth token here
 DEBUG=1 localstack start
 ```
 
