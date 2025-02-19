@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-* LocalStack Team plan (configured with API key)
+* LocalStack Team plan (configured with auth token)
 * `localstack` CLI
 
 To install the latest dev release of the CLI, we can use this command:
