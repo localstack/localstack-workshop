@@ -1,6 +1,7 @@
 import json
 import os
 import uuid
+from decimal import Decimal
 import boto3
 
 dynamodb = boto3.resource("dynamodb")
@@ -8,6 +9,11 @@ sqs = boto3.client("sqs")
 
 TABLE_NAME = os.environ["ORDERS_TABLE"]
 QUEUE_URL = os.environ["ORDERS_QUEUE_URL"]
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        return int(o) if isinstance(o, Decimal) else super().default(o)
+
 
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
@@ -38,7 +44,7 @@ def list_orders():
     return {
         "statusCode": 200,
         "headers": {**CORS_HEADERS, "Content-Type": "application/json"},
-        "body": json.dumps(items),
+        "body": json.dumps(items, cls=DecimalEncoder),
     }
 
 
