@@ -159,6 +159,9 @@ resource "aws_lambda_event_source_mapping" "sqs_to_processor" {
 
 resource "aws_api_gateway_rest_api" "orders_api" {
   name = "orders-api"
+  tags = {
+    "_custom_id_" = "workshop"
+  }
 }
 
 resource "aws_api_gateway_resource" "orders" {
@@ -236,7 +239,8 @@ resource "aws_api_gateway_deployment" "orders_api" {
 # ── S3 Website ────────────────────────────────────────────────────────────────
 
 locals {
-  api_endpoint = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.orders_api.id}/local/_user_request_"
+  api_id       = "workshop"
+  api_endpoint = "http://localhost:4566/restapis/${local.api_id}/local/_user_request_"
 }
 
 resource "aws_s3_bucket" "website" {
@@ -273,8 +277,9 @@ resource "aws_s3_bucket_policy" "website" {
 resource "aws_s3_object" "index_html" {
   bucket       = aws_s3_bucket.website.id
   key          = "index.html"
-  content      = templatefile("${path.module}/../website/index.html.tpl", { api_endpoint = local.api_endpoint })
+  source       = "${path.module}/../website/index.html"
   content_type = "text/html"
+  etag         = filemd5("${path.module}/../website/index.html")
 }
 
 output "api_endpoint" {

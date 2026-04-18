@@ -106,7 +106,7 @@
 </header>
 
 <main>
-  <p id="api-bar">API endpoint: <code>${api_endpoint}</code></p>
+  <p id="api-bar">API endpoint: <code id="api-url"></code></p>
 
   <div class="card">
     <h2>New Order</h2>
@@ -146,11 +146,14 @@
 </main>
 
 <script>
-  const API = "${api_endpoint}";
+  // Derive the API base from the current page's origin so this works both
+  // locally (localhost:4566) and in Codespaces (proxied HTTPS URL).
+  const API = window.location.origin + "/restapis/workshop/local/_user_request_";
+  document.getElementById("api-url").textContent = API;
 
   async function loadOrders() {
     try {
-      const res = await fetch(`$${API}/orders`);
+      const res = await fetch(`${API}/orders`);
       const orders = await res.json();
       const tbody = document.getElementById("orders-body");
       if (!orders.length) {
@@ -179,7 +182,7 @@
     flash.textContent = "";
 
     try {
-      const res = await fetch(`$${API}/orders`, {
+      const res = await fetch(`${API}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -189,13 +192,13 @@
       });
       const data = await res.json();
       flash.className = "flash success";
-      flash.textContent = `Order placed! ID: $${data.order_id}`;
+      flash.textContent = `Order placed! ID: ${data.order_id}`;
       document.getElementById("item").value = "";
       document.getElementById("quantity").value = "1";
       loadOrders();
     } catch (err) {
       flash.className = "flash error";
-      flash.textContent = `Error: $${err.message}`;
+      flash.textContent = `Error: ${err.message}`;
     } finally {
       btn.disabled = false;
     }
