@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Order Processing — LocalStack Workshop</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -115,18 +116,7 @@
       font-size: 0.7rem; font-weight: 700;
       margin: 0.1rem; font-family: monospace;
     }
-    .arch-diagram {
-      background: #f8f9ff;
-      border: 1px solid #e0e8ff;
-      border-radius: 8px;
-      padding: 1rem 1.25rem;
-      font-size: 0.78rem;
-      font-family: monospace;
-      color: #444;
-      line-height: 1.9;
-      white-space: pre;
-      overflow-x: auto;
-    }
+    .mermaid { background: #f8f9ff; border: 1px solid #e0e8ff; border-radius: 8px; padding: 1rem; }
 
     /* ── Sidebar ── */
     .sidebar {
@@ -328,18 +318,23 @@
           and test cloud-native applications on your laptop without touching a
           real AWS account. Every service runs inside a single Docker container.
         </p>
-        <div class="arch-diagram">Browser → API Gateway → Lambda (order-handler)
-                                      ↓                  ↓
-                                 DynamoDB             SQS queue
-                                                         ↓
-                                               Lambda (order-processor)
-                                                         ↓
-                                               Step Functions state machine
-                                              ┌──────────┬──────────┐
-                                           Validate  Payment   Fulfill
-                                              ↓         ↓         ↓
-                                          DynamoDB  DynamoDB    S3
-                                         (status)  (status)  (receipt)</div>
+        <div class="mermaid">
+flowchart LR
+    Browser -->|POST /orders| APIGW[API Gateway]
+    APIGW --> OH[Lambda\norder-handler]
+    OH -->|put_item| DDB[(DynamoDB)]
+    OH -->|send_message| SQS[SQS Queue]
+    SQS -->|on failure x3| DLQ[SQS DLQ]
+    SQS --> OP[Lambda\norder-processor]
+    OP -->|start_execution| SFN[Step Functions]
+    SFN --> V[Validate]
+    SFN --> P[Payment]
+    SFN --> F[Fulfill]
+    V -->|update status| DDB
+    P -->|update status| DDB
+    F -->|update status| DDB
+    F -->|put_object| S3[(S3 Receipts)]
+        </div>
       </div>
 
       <div class="card">
@@ -393,8 +388,7 @@
             <h3>Recovery</h3>
             <ul>
               <li>Disable chaos mode to restore normal DynamoDB behaviour</li>
-              <li>Enable <strong>Auto-resume DLQ</strong> — the UI polls <code style="font-size:0.78rem">POST /orders/replay</code> every 5 s and re-queues stranded messages</li>
-              <li>Orders resume processing through the full pipeline</li>
+              <li>SQS automatically re-delivers DLQ messages — orders resume processing through the full pipeline</li>
             </ul>
           </div>
         </div>
@@ -416,8 +410,7 @@
             <ul>
               <li>Enable <strong>Chaos Mode</strong> in the sidebar</li>
               <li>Place one or more orders — they pile up in <em>pending</em></li>
-              <li>Disable chaos, tick <strong>Auto-resume DLQ</strong></li>
-              <li>Watch orders automatically recover and fulfill</li>
+              <li>Disable chaos — orders automatically recover and fulfill</li>
             </ul>
           </div>
         </div>
@@ -455,6 +448,8 @@
 </div><!-- end .page-layout -->
 
 <script>
+  mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+
   const API = window.location.origin + "/restapis/workshop/local/_user_request_";
   document.getElementById("api-url-display").textContent = API;
 
