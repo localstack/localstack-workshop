@@ -1,3 +1,0 @@
-FROM simonepomata/ecsapi-demo-petstore
-
-RUN sed -i "s|aws-sdk')|aws-sdk'); AWS.config.update({endpoint: 'http://' + process.env['LOCALSTACK_HOSTNAME'] + ':4566'})|g" server.js

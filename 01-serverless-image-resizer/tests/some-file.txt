@@ -1,2 +1,0 @@
-not an image!
-when processing this file, the lambda will fail.
