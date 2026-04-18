@@ -1,3 +1,6 @@
+# Workshop token (never commit)
+.workshop-token
+
 .idea/
 node_modules/
 .venv/
