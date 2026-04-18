@@ -6,14 +6,10 @@ from datetime import datetime, timezone
 import boto3
 
 dynamodb = boto3.resource("dynamodb")
-s3 = boto3.client("s3")
 sfn = boto3.client("stepfunctions")
 
-TABLE_NAME = os.environ["ORDERS_TABLE"]
-RECEIPTS_BUCKET = os.environ["RECEIPTS_BUCKET"]
+TABLE_NAME        = os.environ["ORDERS_TABLE"]
 STATE_MACHINE_ARN = os.environ["STATE_MACHINE_ARN"]
-
-TERMINAL_STATUSES = {"fulfilled", "failed"}
 
 
 def now():
@@ -64,7 +60,6 @@ def handler(event, context):
 
     if step == "validate":        return validate(order)
     if step == "process_payment": return process_payment(order)
-    if step == "fulfill":         return fulfill(order)
     if step == "handle_failure":  return handle_failure(order)
 
     raise ValueError(f"Unknown step: {step}")
@@ -79,20 +74,6 @@ def validate(order):
 def process_payment(order):
     time.sleep(3)
     set_status(order["order_id"], "payment_processing")
-    return order
-
-
-def fulfill(order):
-    time.sleep(2)
-    set_status(order["order_id"], "fulfilled")
-    receipt = {k: order[k] for k in ("order_id", "item", "quantity")}
-    receipt["status"] = "fulfilled"
-    s3.put_object(
-        Bucket=RECEIPTS_BUCKET,
-        Key=f"receipts/{order['order_id']}.json",
-        Body=json.dumps(receipt),
-        ContentType="application/json",
-    )
     return order
 
 

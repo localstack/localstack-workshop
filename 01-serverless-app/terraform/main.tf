@@ -64,6 +64,88 @@ resource "aws_dynamodb_table" "orders" {
   }
 }
 
+# ── ECR ───────────────────────────────────────────────────────────────────────
+
+resource "aws_ecr_repository" "fulfillment" {
+  name = "fulfillment"
+}
+
+# ── ECS ───────────────────────────────────────────────────────────────────────
+
+resource "aws_ecs_cluster" "main" {
+  name = "workshop"
+}
+
+resource "aws_iam_role" "ecs_execution" {
+  name = "ecs-execution-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_execution" {
+  role       = aws_iam_role.ecs_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+resource "aws_iam_role" "ecs_task" {
+  name = "ecs-task-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "ecs_task" {
+  role = aws_iam_role.ecs_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["dynamodb:GetItem", "dynamodb:UpdateItem"]
+        Resource = aws_dynamodb_table.orders.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:PutObject"]
+        Resource = "${aws_s3_bucket.receipts.arn}/*"
+      }
+    ]
+  })
+}
+
+resource "aws_ecs_task_definition" "fulfillment" {
+  family                   = "fulfillment"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = aws_iam_role.ecs_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([{
+    name  = "fulfillment"
+    image = "${aws_ecr_repository.fulfillment.repository_url}:latest"
+    environment = [
+      { name = "ORDERS_TABLE",    value = aws_dynamodb_table.orders.name },
+      { name = "RECEIPTS_BUCKET", value = aws_s3_bucket.receipts.bucket },
+    ]
+  }])
+}
+
 # ── S3 ────────────────────────────────────────────────────────────────────────
 
 resource "aws_s3_bucket" "receipts" {
@@ -148,11 +230,28 @@ resource "aws_iam_role_policy" "sfn_policy" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = "lambda:InvokeFunction"
-      Resource = aws_lambda_function.order_processor.arn
-    }]
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = aws_lambda_function.order_processor.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["ecs:RunTask", "ecs:StopTask", "ecs:DescribeTasks"]
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = "iam:PassRole"
+        Resource = [aws_iam_role.ecs_execution.arn, aws_iam_role.ecs_task.arn]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["events:PutTargets", "events:PutRule", "events:DescribeRule"]
+        Resource = "*"
+      }
+    ]
   })
 }
 
@@ -202,7 +301,6 @@ resource "aws_lambda_function" "order_processor" {
   environment {
     variables = {
       ORDERS_TABLE      = aws_dynamodb_table.orders.name
-      RECEIPTS_BUCKET   = aws_s3_bucket.receipts.bucket
       STATE_MACHINE_ARN = local.state_machine_arn
     }
   }
@@ -251,12 +349,21 @@ resource "aws_sfn_state_machine" "order_processing" {
       }
       FulfillOrder = {
         Type     = "Task"
-        Resource = aws_lambda_function.order_processor.arn
+        Resource = "arn:aws:states:::ecs:runTask.sync:2"
         Parameters = {
-          "step"    = "fulfill"
-          "order.$" = "$.order"
+          LaunchType     = "FARGATE"
+          Cluster        = aws_ecs_cluster.main.arn
+          TaskDefinition = aws_ecs_task_definition.fulfillment.arn
+          Overrides = {
+            ContainerOverrides = [{
+              Name = "fulfillment"
+              Environment = [
+                { "Name" = "ORDER_ID", "Value.$" = "$.order.order_id" }
+              ]
+            }]
+          }
         }
-        ResultPath = "$.order"
+        ResultPath = null
         Catch = [{ ErrorEquals = ["States.ALL"], Next = "HandleFailure", ResultPath = "$.error" }]
         End = true
       }

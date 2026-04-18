@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := help
-TERRAFORM_DIR := 01-serverless-app/terraform
+TERRAFORM_DIR  := 01-serverless-app/terraform
+ECR_REGISTRY   := 000000000000.dkr.ecr.us-east-1.localhost.localstack.cloud:4566
+FULFILLMENT_DIR := 01-serverless-app/services/fulfillment
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage: make \033[36m<target>\033[0m\n\nTargets:\n"} \
@@ -27,7 +29,14 @@ setup: ## Fetch auth token and start LocalStack (runs 00-setup/setup.sh)
 init: ## Initialise Terraform (only needed once)
 	cd $(TERRAFORM_DIR) && tflocal init
 
-deploy: ## Deploy the full app to LocalStack via Terraform
+build: ## Build and push the fulfillment service image to local ECR
+	awslocal ecr create-repository --repository-name fulfillment 2>/dev/null || true
+	awslocal ecr get-login-password | \
+	  docker login --username AWS --password-stdin $(ECR_REGISTRY)
+	docker build -t $(ECR_REGISTRY)/fulfillment:latest $(FULFILLMENT_DIR)
+	docker push $(ECR_REGISTRY)/fulfillment:latest
+
+deploy: build ## Build fulfillment image then deploy the full app via Terraform
 	@[ -d $(TERRAFORM_DIR)/.terraform ] || (cd $(TERRAFORM_DIR) && tflocal init)
 	cd $(TERRAFORM_DIR) && tflocal apply -auto-approve
 
@@ -77,6 +86,6 @@ replay-dlq: ## Replay messages from the DLQ back to the main queue
 publish-token: ## Upload LOCALSTACK_AUTH_TOKEN to S3 for workshop participants
 	bash scripts/publish-workshop-token.sh
 
-.PHONY: help start stop status logs setup init deploy destroy redeploy outputs \
+.PHONY: help start stop status logs setup init build deploy destroy redeploy outputs \
         test test-fast open-ui api-endpoint inject-fault remove-fault replay-dlq \
         publish-token
