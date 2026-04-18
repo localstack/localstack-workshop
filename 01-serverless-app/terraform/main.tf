@@ -356,6 +356,16 @@ resource "aws_api_gateway_deployment" "orders_api" {
   rest_api_id = aws_api_gateway_rest_api.orders_api.id
   stage_name  = "local"
 
+  triggers = {
+    redeployment = sha1(jsonencode([
+      aws_api_gateway_integration.post_order_handler.id,
+      aws_api_gateway_integration.get_orders_handler.id,
+      aws_api_gateway_integration.options_order_handler.id,
+      aws_api_gateway_integration.post_replay_handler.id,
+      aws_api_gateway_integration.options_replay_handler.id,
+    ]))
+  }
+
   depends_on = [
     aws_api_gateway_integration.post_order_handler,
     aws_api_gateway_integration.get_orders_handler,
