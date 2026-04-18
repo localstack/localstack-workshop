@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import uuid
 from datetime import datetime, timezone
 import boto3
 
@@ -51,7 +52,7 @@ def handler(event, context):
             order = json.loads(record["body"])
             sfn.start_execution(
                 stateMachineArn=STATE_MACHINE_ARN,
-                name=f"order-{order['order_id']}",
+                name=f"order-{order['order_id']}-{uuid.uuid4().hex[:8]}",
                 input=json.dumps({"order": order}),
             )
         return
