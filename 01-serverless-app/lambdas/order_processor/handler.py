@@ -50,6 +50,7 @@ def handler(event, context):
     if "Records" in event:
         for record in event["Records"]:
             order = json.loads(record["body"])
+            set_status(order["order_id"], "validating")  # fails fast if DDB is faulted → SQS retry → DLQ
             sfn.start_execution(
                 stateMachineArn=STATE_MACHINE_ARN,
                 name=f"order-{order['order_id']}-{uuid.uuid4().hex[:8]}",
