@@ -159,10 +159,10 @@
       }
       tbody.innerHTML = orders.map(o => `
         <tr>
-          <td class="order-id">${o.order_id.slice(0, 8)}…</td>
-          <td>${escHtml(o.item)}</td>
-          <td>${o.quantity}</td>
-          <td><span class="badge ${o.status}">${o.status}</span></td>
+          <td class="order-id">$${o.order_id.slice(0, 8)}…</td>
+          <td>$${escHtml(o.item)}</td>
+          <td>$${o.quantity}</td>
+          <td><span class="badge $${o.status}">$${o.status}</span></td>
         </tr>
       `).join("");
     } catch (e) {
