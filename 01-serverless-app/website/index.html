@@ -255,6 +255,9 @@
     <div class="nav-item active" onclick="showSection('orders')" id="nav-orders">
       <span class="nav-icon">📦</span> Orders
     </div>
+    <div class="nav-item" onclick="showSection('products')" id="nav-products">
+      <span class="nav-icon">🛍️</span> Products
+    </div>
     <div class="nav-item" onclick="showSection('about')" id="nav-about">
       <span class="nav-icon">ℹ️</span> About
     </div>
@@ -269,8 +272,10 @@
         <h2>New Order</h2>
         <form id="order-form">
           <label>
-            Item
-            <input type="text" id="item" placeholder="e.g. LocalStack T-Shirt" required />
+            Product
+            <select id="item" required style="padding:0.5rem 0.75rem;border:1px solid #ddd;border-radius:6px;font-size:0.9rem;width:240px;background:#fff;">
+              <option value="">Loading products…</option>
+            </select>
           </label>
           <label>
             Quantity
@@ -303,6 +308,25 @@
           </thead>
           <tbody id="orders-body">
             <tr><td colspan="7" class="empty">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Products section -->
+    <div class="section" id="section-products">
+      <div class="card">
+        <h2>Products</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Price</th>
+            </tr>
+          </thead>
+          <tbody id="products-body">
+            <tr><td colspan="3" class="empty">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -471,6 +495,7 @@ flowchart LR
     document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
     document.getElementById("section-" + name).classList.add("active");
     document.getElementById("nav-" + name).classList.add("active");
+    if (name === "products") loadProducts();
     if (name === "about" && !mermaidRendered) {
       mermaid.run({ nodes: document.querySelectorAll(".mermaid") });
       mermaidRendered = true;
@@ -509,7 +534,7 @@ flowchart LR
       { label: "Pending",    ts: o.created_at,    desc: "Order received, queued for processing" },
       { label: "Validating", ts: o.validating_at, desc: "Checking order details" },
       { label: "Payment",    ts: o.payment_at,    desc: "Processing payment" },
-      { label: "Fulfilled",  ts: o.fulfilled_at,  desc: "Receipt stored in S3" },
+      { label: "Fulfilled",  ts: o.fulfilled_at,  desc: o.fulfilled_at ? `Receipt stored in S3 — <a href="${window.location.origin}/order-receipts/receipts/${o.order_id}.json" target="_blank" style="color:#084298;">download</a>` : "Receipt stored in S3" },
       { label: "Failed",     ts: o.failed_at,     desc: "Processing error — message routed to DLQ" },
     ].filter(s => s.ts);
 
@@ -517,7 +542,7 @@ flowchart LR
       <div class="detail-item">
         <span class="detail-label">${s.label}</span>
         <span class="detail-value ts">${fmt(s.ts)}</span>
-        <span style="font-size:0.72rem;color:#888;">${s.desc}</span>
+        <span style="font-size:0.72rem;color:#888;">${s.desc || ""}</span>
       </div>`).join("");
 
     const meta = `
@@ -611,7 +636,6 @@ flowchart LR
       const data = await res.json();
       flash.className = "flash success";
       flash.textContent = `Order placed! ID: ${data.order_id}`;
-      document.getElementById("item").value = "";
       document.getElementById("quantity").value = "1";
       loadOrders();
     } catch (err) {
@@ -661,11 +685,45 @@ flowchart LR
     }
   });
 
+  // ── Products ──────────────────────────────────────────────────────────────
+
+  let productsCache = [];
+
+  async function loadProducts() {
+    try {
+      const res = await fetch(`${API}/products`);
+      productsCache = await res.json();
+
+      // Populate order form dropdown
+      const sel = document.getElementById("item");
+      sel.innerHTML = productsCache.map(p =>
+        `<option value="${escHtml(p.name)}">${escHtml(p.name)} — $${Number(p.price).toFixed(2)}</option>`
+      ).join("");
+
+      // Populate products table
+      const tbody = document.getElementById("products-body");
+      if (productsCache.length) {
+        tbody.innerHTML = productsCache.map(p => `
+          <tr>
+            <td><strong>${escHtml(p.name)}</strong></td>
+            <td style="color:#666;font-size:0.85rem;">${escHtml(p.description)}</td>
+            <td style="font-family:monospace;">$${Number(p.price).toFixed(2)}</td>
+          </tr>`).join("");
+      } else {
+        tbody.innerHTML = '<tr><td colspan="3" class="empty">No products found.</td></tr>';
+      }
+    } catch (e) {
+      document.getElementById("products-body").innerHTML =
+        '<tr><td colspan="3" class="empty">Error loading products.</td></tr>';
+    }
+  }
+
   // ── Init ──────────────────────────────────────────────────────────────────
 
   checkChaos();
   setInterval(checkChaos, 5000);
   loadOrders();
+  loadProducts();
 </script>
 </body>
 </html>

@@ -18,6 +18,41 @@ provider "aws" {
 
 # ── DynamoDB ──────────────────────────────────────────────────────────────────
 
+resource "aws_dynamodb_table" "products" {
+  name         = "products"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "product_id"
+
+  attribute {
+    name = "product_id"
+    type = "S"
+  }
+}
+
+locals {
+  products = [
+    { product_id = "ls-tshirt",      name = "LocalStack T-Shirt",    description = "Classic logo tee",             price = "24.99" },
+    { product_id = "ls-hoodie",      name = "LocalStack Hoodie",     description = "Warm & cloud-native",          price = "49.99" },
+    { product_id = "ls-cap",         name = "LocalStack Cap",        description = "Keep the sun off your stack",  price = "19.99" },
+    { product_id = "ls-mug",         name = "LocalStack Mug",        description = "Fill it with local coffee",    price = "14.99" },
+    { product_id = "ls-stickers",    name = "Sticker Pack",          description = "10 cloud-native stickers",     price = "4.99"  },
+    { product_id = "ls-socks",       name = "LocalStack Socks",      description = "Deploy faster on your feet",   price = "9.99"  },
+  ]
+}
+
+resource "aws_dynamodb_table_item" "products" {
+  for_each   = { for p in local.products : p.product_id => p }
+  table_name = aws_dynamodb_table.products.name
+  hash_key   = aws_dynamodb_table.products.hash_key
+
+  item = jsonencode({
+    product_id  = { S = each.value.product_id }
+    name        = { S = each.value.name }
+    description = { S = each.value.description }
+    price       = { N = each.value.price }
+  })
+}
+
 resource "aws_dynamodb_table" "orders" {
   name         = "orders"
   billing_mode = "PAY_PER_REQUEST"
@@ -74,7 +109,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
       {
         Effect   = "Allow"
         Action   = ["dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:GetItem", "dynamodb:Scan"]
-        Resource = aws_dynamodb_table.orders.arn
+        Resource = [aws_dynamodb_table.orders.arn, aws_dynamodb_table.products.arn]
       },
       {
         Effect   = "Allow"
@@ -140,6 +175,7 @@ resource "aws_lambda_function" "order_handler" {
   environment {
     variables = {
       ORDERS_TABLE     = aws_dynamodb_table.orders.name
+      PRODUCTS_TABLE   = aws_dynamodb_table.products.name
       ORDERS_QUEUE_URL = aws_sqs_queue.orders.url
       ORDERS_DLQ_URL   = aws_sqs_queue.orders_dlq.url
     }
@@ -307,6 +343,44 @@ resource "aws_api_gateway_integration" "options_order_handler" {
   uri                     = aws_lambda_function.order_handler.invoke_arn
 }
 
+resource "aws_api_gateway_resource" "products" {
+  rest_api_id = aws_api_gateway_rest_api.orders_api.id
+  parent_id   = aws_api_gateway_rest_api.orders_api.root_resource_id
+  path_part   = "products"
+}
+
+resource "aws_api_gateway_method" "get_products" {
+  rest_api_id   = aws_api_gateway_rest_api.orders_api.id
+  resource_id   = aws_api_gateway_resource.products.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "options_products" {
+  rest_api_id   = aws_api_gateway_rest_api.orders_api.id
+  resource_id   = aws_api_gateway_resource.products.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "get_products_handler" {
+  rest_api_id             = aws_api_gateway_rest_api.orders_api.id
+  resource_id             = aws_api_gateway_resource.products.id
+  http_method             = aws_api_gateway_method.get_products.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.order_handler.invoke_arn
+}
+
+resource "aws_api_gateway_integration" "options_products_handler" {
+  rest_api_id             = aws_api_gateway_rest_api.orders_api.id
+  resource_id             = aws_api_gateway_resource.products.id
+  http_method             = aws_api_gateway_method.options_products.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.order_handler.invoke_arn
+}
+
 resource "aws_api_gateway_resource" "orders_replay" {
   rest_api_id = aws_api_gateway_rest_api.orders_api.id
   parent_id   = aws_api_gateway_resource.orders.id
@@ -363,6 +437,8 @@ resource "aws_api_gateway_deployment" "orders_api" {
       aws_api_gateway_integration.options_order_handler.id,
       aws_api_gateway_integration.post_replay_handler.id,
       aws_api_gateway_integration.options_replay_handler.id,
+      aws_api_gateway_integration.get_products_handler.id,
+      aws_api_gateway_integration.options_products_handler.id,
     ]))
   }
 
@@ -372,6 +448,8 @@ resource "aws_api_gateway_deployment" "orders_api" {
     aws_api_gateway_integration.options_order_handler,
     aws_api_gateway_integration.post_replay_handler,
     aws_api_gateway_integration.options_replay_handler,
+    aws_api_gateway_integration.get_products_handler,
+    aws_api_gateway_integration.options_products_handler,
   ]
 }
 

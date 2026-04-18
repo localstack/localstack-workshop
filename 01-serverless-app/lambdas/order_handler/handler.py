@@ -8,9 +8,10 @@ import boto3
 dynamodb = boto3.resource("dynamodb")
 sqs = boto3.client("sqs")
 
-TABLE_NAME = os.environ["ORDERS_TABLE"]
-QUEUE_URL = os.environ["ORDERS_QUEUE_URL"]
-DLQ_URL   = os.environ.get("ORDERS_DLQ_URL", "")
+TABLE_NAME     = os.environ["ORDERS_TABLE"]
+PRODUCTS_TABLE = os.environ["PRODUCTS_TABLE"]
+QUEUE_URL      = os.environ["ORDERS_QUEUE_URL"]
+DLQ_URL        = os.environ.get("ORDERS_DLQ_URL", "")
 
 class DecimalEncoder(json.JSONEncoder):
     def default(self, o):
@@ -34,6 +35,9 @@ def handler(event, context):
     if method == "POST" and path.endswith("/replay"):
         return replay_dlq()
 
+    if method == "GET" and "/products" in path:
+        return list_products()
+
     if method == "GET":
         return list_orders()
 
@@ -53,6 +57,16 @@ def replay_dlq():
         "statusCode": 200,
         "headers": {**CORS_HEADERS, "Content-Type": "application/json"},
         "body": json.dumps({"replayed": len(messages)}),
+    }
+
+
+def list_products():
+    table = dynamodb.Table(PRODUCTS_TABLE)
+    items = sorted(table.scan().get("Items", []), key=lambda x: x.get("name", ""))
+    return {
+        "statusCode": 200,
+        "headers": {**CORS_HEADERS, "Content-Type": "application/json"},
+        "body": json.dumps(items, cls=DecimalEncoder),
     }
 
 
