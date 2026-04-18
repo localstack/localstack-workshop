@@ -145,6 +145,20 @@
 
     #api-bar { font-size: 0.78rem; color: #aaa; margin-bottom: 1rem; }
     #api-bar code { background: #f0f0f0; padding: 0.1rem 0.4rem; border-radius: 4px; }
+
+    #chaos-banner {
+      display: none;
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+      color: #856404;
+    }
+    #chaos-banner.active { display: block; }
+    #chaos-banner strong { font-weight: 700; }
+    #chaos-faults { font-family: monospace; font-size: 0.8rem; margin-top: 0.4rem; white-space: pre-wrap; }
   </style>
 </head>
 <body>
@@ -156,6 +170,11 @@
 
 <main>
   <p id="api-bar">API endpoint: <code id="api-url"></code></p>
+
+  <div id="chaos-banner">
+    <strong>⚠ Chaos mode active</strong> — fault injections are enabled, orders may fail or get stuck.
+    <div id="chaos-faults"></div>
+  </div>
 
   <div class="card">
     <h2>New Order</h2>
@@ -340,6 +359,22 @@
     return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   }
 
+  async function checkChaos() {
+    try {
+      const res = await fetch(`${window.location.origin}/_localstack/chaos/faults`);
+      const faults = await res.json();
+      const banner = document.getElementById("chaos-banner");
+      if (Array.isArray(faults) && faults.length > 0) {
+        banner.classList.add("active");
+        document.getElementById("chaos-faults").textContent = JSON.stringify(faults, null, 2);
+      } else {
+        banner.classList.remove("active");
+      }
+    } catch (e) { /* LocalStack not reachable, ignore */ }
+  }
+
+  checkChaos();
+  setInterval(checkChaos, 5000);
   loadOrders();
 </script>
 </body>

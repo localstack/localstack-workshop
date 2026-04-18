@@ -15,7 +15,12 @@ sqs = boto3.client(
     aws_secret_access_key="test",
 )
 
-data = json.load(sys.stdin)
+raw = sys.stdin.read().strip()
+if not raw:
+    print("DLQ is empty.")
+    sys.exit(0)
+
+data = json.loads(raw)
 messages = data.get("Messages", [])
 
 if not messages:
