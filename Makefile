@@ -64,7 +64,8 @@ inject-fault: ## Inject DynamoDB throttling fault (breaks order_processor)
 	  -d @04-chaos-engineering/faults/ddb-throttle-localstack.json | python3 -m json.tool
 
 remove-fault: ## Remove all active fault injections
-	curl -s -X DELETE http://localhost:4566/_localstack/chaos/faults
+	curl -s -X DELETE http://localhost:4566/_localstack/chaos/faults \
+	  -H "Content-Type: application/json" -d '[]'
 
 replay-dlq: ## Replay messages from the DLQ back to the main queue
 	awslocal sqs receive-message \
