@@ -16,6 +16,14 @@ provider "aws" {
   skip_requesting_account_id  = true
 }
 
+# ── VPC (required for FARGATE awsvpc network mode) ────────────────────────────
+
+resource "aws_default_vpc" "default" {}
+
+resource "aws_default_subnet" "default" {
+  availability_zone = "us-east-1a"
+}
+
 # ── DynamoDB ──────────────────────────────────────────────────────────────────
 
 resource "aws_dynamodb_table" "products" {
@@ -358,6 +366,12 @@ resource "aws_sfn_state_machine" "order_processing" {
           LaunchType     = "FARGATE"
           Cluster        = aws_ecs_cluster.main.arn
           TaskDefinition = aws_ecs_task_definition.fulfillment.arn
+          NetworkConfiguration = {
+            AwsvpcConfiguration = {
+              Subnets        = [aws_default_subnet.default.id]
+              AssignPublicIp = "ENABLED"
+            }
+          }
           Overrides = {
             ContainerOverrides = [{
               Name = "fulfillment"
