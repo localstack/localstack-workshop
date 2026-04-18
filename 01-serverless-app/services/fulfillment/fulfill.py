@@ -9,7 +9,9 @@ ORDER_ID        = os.environ["ORDER_ID"]
 TABLE_NAME      = os.environ["ORDERS_TABLE"]
 RECEIPTS_BUCKET = os.environ["RECEIPTS_BUCKET"]
 
-# LocalStack injects AWS_ENDPOINT_URL automatically into ECS task containers.
+endpoint = os.environ.get("AWS_ENDPOINT_URL", "")
+print(f"Connecting to endpoint: {endpoint or '(default AWS)'}", flush=True)
+
 dynamodb = boto3.resource("dynamodb")
 s3       = boto3.client("s3")
 

@@ -140,8 +140,12 @@ resource "aws_ecs_task_definition" "fulfillment" {
     name  = "fulfillment"
     image = "${aws_ecr_repository.fulfillment.repository_url}:latest"
     environment = [
-      { name = "ORDERS_TABLE",    value = aws_dynamodb_table.orders.name },
-      { name = "RECEIPTS_BUCKET", value = aws_s3_bucket.receipts.bucket },
+      { name = "ORDERS_TABLE",         value = aws_dynamodb_table.orders.name },
+      { name = "RECEIPTS_BUCKET",      value = aws_s3_bucket.receipts.bucket },
+      { name = "AWS_ENDPOINT_URL",     value = "http://localhost.localstack.cloud:4566" },
+      { name = "AWS_DEFAULT_REGION",   value = "us-east-1" },
+      { name = "AWS_ACCESS_KEY_ID",    value = "test" },
+      { name = "AWS_SECRET_ACCESS_KEY", value = "test" },
     ]
   }])
 }
