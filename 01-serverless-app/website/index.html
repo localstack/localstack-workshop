@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Processing — LocalStack Workshop</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    header h1 { font-size: 1.2rem; font-weight: 600; }
+    header span { font-size: 0.85rem; color: #aaa; margin-left: auto; }
+
+    /* ── Three-column layout ── */
+    .page-layout {
+      max-width: 1280px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      display: grid;
+      grid-template-columns: 160px 1fr 260px;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    @media (max-width: 960px) {
+      .page-layout { grid-template-columns: 1fr 240px; }
+      .left-nav { display: none; }
+    }
+    @media (max-width: 680px) {
+      .page-layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+    }
+
+    /* ── Left nav ── */
+    .left-nav {
+      position: sticky;
+      top: 1.5rem;
+    }
+    .nav-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #bbb;
+      padding: 0 0.5rem 0.5rem;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: #555;
+      user-select: none;
+      transition: background 0.1s, color 0.1s;
+      margin-bottom: 0.15rem;
+    }
+    .nav-item:hover { background: #ebebeb; color: #1a1a1a; }
+    .nav-item.active { background: #e8412a; color: #fff; font-weight: 600; }
+    .nav-item .nav-icon { font-size: 1rem; }
+
+    /* ── Cards ── */
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card:last-child { margin-bottom: 0; }
+    .card h2 {
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    /* ── Sections ── */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── About page ── */
+    .about-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.25rem;
+    }
+    .info-section h3 {
+      font-size: 0.75rem; font-weight: 700; color: #1a1a2e;
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.6rem;
+    }
+    .info-section p, .info-section li { font-size: 0.84rem; color: #555; line-height: 1.6; }
+    .info-section ul { padding-left: 1.1rem; }
+    .info-section li { margin-bottom: 0.3rem; }
+    .svc {
+      display: inline-block;
+      background: #eef2ff; color: #3730a3;
+      border-radius: 4px; padding: 0.05rem 0.4rem;
+      font-size: 0.7rem; font-weight: 700;
+      margin: 0.1rem; font-family: monospace;
+    }
+    .mermaid { background: #f8f9ff; border: 1px solid #e0e8ff; border-radius: 8px; padding: 1rem; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      position: sticky;
+      top: 1.5rem;
+    }
+    .sidebar .card { margin-bottom: 1rem; padding: 1.1rem 1.2rem; }
+    .sidebar .card h2 { margin-bottom: 0.75rem; }
+    .sidebar-hint { font-size: 0.76rem; color: #999; line-height: 1.5; margin-top: 0.6rem; }
+    .sidebar-hint code { font-size: 0.72rem; background: #f0f0f0; padding: 0.05rem 0.3rem; border-radius: 3px; }
+
+    /* ── Chaos toggle ── */
+    .chaos-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    .chaos-status { font-size: 0.875rem; font-weight: 600; }
+    .chaos-status.on  { color: #c0392b; }
+    .chaos-status.off { color: #888; }
+
+    .toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: #ccc; border-radius: 22px; cursor: pointer; transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: ""; position: absolute;
+      width: 16px; height: 16px; left: 3px; top: 3px;
+      background: #fff; border-radius: 50%; transition: transform 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: #e8412a; }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+    .fault-list {
+      margin-top: 0.6rem;
+      background: #fdf3f2; border: 1px solid #f5c6c2;
+      border-radius: 6px; padding: 0.5rem 0.65rem;
+      font-size: 0.7rem; font-family: monospace; color: #922;
+      white-space: pre-wrap; word-break: break-all;
+    }
+
+    /* ── API card ── */
+    #api-url-display {
+      font-family: monospace; font-size: 0.7rem; color: #555;
+      word-break: break-all; line-height: 1.5;
+    }
+
+    /* ── Order form ── */
+    form { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
+    label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.875rem; color: #555; }
+    input[type="text"], input[type="number"] {
+      padding: 0.5rem 0.75rem; border: 1px solid #ddd;
+      border-radius: 6px; font-size: 0.9rem; width: 200px;
+    }
+    input[type="number"] { width: 80px; }
+    button[type="submit"] {
+      padding: 0.5rem 1.25rem; background: #e8412a; color: #fff;
+      border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; font-weight: 500;
+    }
+    button[type="submit"]:hover { background: #c73520; }
+    button[type="submit"]:disabled { background: #ccc; cursor: not-allowed; }
+    .flash {
+      padding: 0.6rem 1rem; border-radius: 6px;
+      font-size: 0.875rem; margin-top: 0.75rem; display: none;
+    }
+    .flash.success { background: #e6f4ea; color: #1e7e34; display: block; }
+    .flash.error   { background: #fde8e8; color: #c0392b; display: block; }
+
+    /* ── Orders table ── */
+    .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+    .table-header-right { display: flex; align-items: center; gap: 0.75rem; }
+    .refresh-btn {
+      padding: 0.3rem 0.9rem; border: 1px solid #ddd;
+      border-radius: 6px; background: #fff; cursor: pointer; font-size: 0.85rem;
+    }
+    .refresh-btn:hover { background: #f5f5f5; }
+    #refresh-indicator { font-size: 0.78rem; color: #aaa; display: none; }
+    #refresh-indicator.active { display: inline; color: #084298; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { text-align: left; padding: 0.5rem 0.75rem; color: #666; font-weight: 600; border-bottom: 2px solid #eee; white-space: nowrap; }
+    td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+    tr.data-row { cursor: pointer; }
+    tr.data-row:hover td { background: #f8f8f8; }
+    tr.data-row.expanded td { background: #f0f5ff; border-bottom: none; }
+    tr.detail-row { display: none; }
+    tr.detail-row.visible { display: table-row; }
+    tr.detail-row td { background: #f7f9ff; border-bottom: 1px solid #e0e8ff; padding: 0.75rem 1rem; }
+
+    .expand-icon { color: #aaa; font-size: 0.7rem; margin-right: 0.3rem; transition: transform 0.15s; display: inline-block; }
+    tr.data-row.expanded .expand-icon { transform: rotate(90deg); }
+
+    .badge {
+      display: inline-block; padding: 0.2rem 0.6rem;
+      border-radius: 99px; font-size: 0.75rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+    }
+    .badge.pending            { background: #fff3cd; color: #856404; }
+    .badge.validating         { background: #cfe2ff; color: #084298; }
+    .badge.payment_processing { background: #e0d7ff; color: #4a1a8a; }
+    .badge.fulfilled          { background: #d1f5d3; color: #1a7a2a; }
+    .badge.failed             { background: #fde8e8; color: #c0392b; }
+
+    .pipeline { display: flex; align-items: center; font-size: 0.7rem; white-space: nowrap; }
+    .pipeline-step { padding: 0.15rem 0.5rem; border-radius: 3px; color: #999; background: #f0f0f0; }
+    .pipeline-step.done   { background: #d1f5d3; color: #1a7a2a; }
+    .pipeline-step.active { background: #cfe2ff; color: #084298; font-weight: 600; }
+    .pipeline-step.failed { background: #fde8e8; color: #c0392b; }
+    .pipeline-arrow { color: #ccc; padding: 0 2px; }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.5rem 1.5rem; font-size: 0.82rem;
+    }
+    .detail-item { display: flex; flex-direction: column; gap: 0.1rem; }
+    .detail-label { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+    .detail-value { font-family: monospace; color: #333; word-break: break-all; }
+    .detail-value.ts { font-family: inherit; color: #555; }
+
+    .order-id  { font-family: monospace; font-size: 0.78rem; color: #888; }
+    .timestamp { font-size: 0.78rem; color: #999; white-space: nowrap; }
+    .empty     { text-align: center; color: #aaa; padding: 2rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Order Processing Pipeline</h1>
+  <span>LocalStack Workshop</span>
+</header>
+
+<div class="page-layout">
+
+  <!-- ── Left nav ── -->
+  <nav class="left-nav">
+    <div class="nav-label">Navigation</div>
+    <div class="nav-item active" onclick="showSection('orders')" id="nav-orders">
+      <span class="nav-icon">📦</span> Orders
+    </div>
+    <div class="nav-item" onclick="showSection('products')" id="nav-products">
+      <span class="nav-icon">🛍️</span> Products
+    </div>
+    <div class="nav-item" onclick="showSection('about')" id="nav-about">
+      <span class="nav-icon">ℹ️</span> About
+    </div>
+  </nav>
+
+  <!-- ── Main content ── -->
+  <main>
+
+    <!-- Orders section -->
+    <div class="section active" id="section-orders">
+      <div class="card">
+        <h2>New Order</h2>
+        <form id="order-form">
+          <label>
+            Product
+            <select id="item" required style="padding:0.5rem 0.75rem;border:1px solid #ddd;border-radius:6px;font-size:0.9rem;width:240px;background:#fff;">
+              <option value="">Loading products…</option>
+            </select>
+          </label>
+          <label>
+            Quantity
+            <input type="number" id="quantity" value="1" min="1" required />
+          </label>
+          <button type="submit" id="submit-btn">Place Order</button>
+        </form>
+        <div class="flash" id="flash"></div>
+      </div>
+
+      <div class="card">
+        <div class="table-header">
+          <h2>Orders</h2>
+          <div class="table-header-right">
+            <span id="refresh-indicator">↻ auto-refreshing…</span>
+            <button class="refresh-btn" onclick="loadOrders()">↻ Refresh</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Order ID</th>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Created</th>
+              <th>Status</th>
+              <th>Pipeline</th>
+            </tr>
+          </thead>
+          <tbody id="orders-body">
+            <tr><td colspan="7" class="empty">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Products section -->
+    <div class="section" id="section-products">
+      <div class="card">
+        <h2>Products</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Price</th>
+            </tr>
+          </thead>
+          <tbody id="products-body">
+            <tr><td colspan="3" class="empty">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- About section -->
+    <div class="section" id="section-about">
+      <div class="card">
+        <h2>What is this?</h2>
+        <p style="font-size:0.875rem;color:#555;line-height:1.65;margin-bottom:1rem;">
+          A fully local serverless order-processing pipeline running on
+          <strong>LocalStack</strong> — an AWS cloud emulator that lets you develop
+          and test cloud-native applications on your laptop without touching a
+          real AWS account. Every service runs inside a single Docker container.
+        </p>
+        <div class="mermaid">
+flowchart LR
+    Browser -->|POST /orders| APIGW[API Gateway]
+    APIGW --> OH[Lambda\norder-handler]
+    OH -->|put_item| DDB[(DynamoDB)]
+    OH -->|send_message| SQS[SQS Queue]
+    SQS -->|on failure x3| DLQ[SQS DLQ]
+    SQS --> OP[Lambda\norder-processor]
+    OP -->|start_execution| SFN[Step Functions]
+    SFN --> V[Validate]
+    SFN --> P[Payment]
+    SFN --> F[Fulfill]
+    V -->|update status| DDB
+    P -->|update status| DDB
+    F -->|update status| DDB
+    F -->|put_object| S3[(S3 Receipts)]
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Architecture</h2>
+        <div class="about-grid">
+          <div class="info-section">
+            <h3>API Layer</h3>
+            <ul>
+              <li><span class="svc">API Gateway</span> custom ID <code style="font-size:0.78rem">workshop</code> — exposes <code style="font-size:0.78rem">POST /orders</code>, <code style="font-size:0.78rem">GET /orders</code>, <code style="font-size:0.78rem">POST /orders/replay</code></li>
+              <li><span class="svc">Lambda</span> <em>order-handler</em> validates input, persists to DynamoDB, enqueues on SQS</li>
+            </ul>
+          </div>
+          <div class="info-section">
+            <h3>Processing</h3>
+            <ul>
+              <li><span class="svc">SQS</span> <em>orders-queue</em> decouples ingestion from processing; <em>orders-dlq</em> catches failures after 3 retries</li>
+              <li><span class="svc">Lambda</span> <em>order-processor</em> consumes SQS and starts a Step Functions execution per order</li>
+              <li><span class="svc">Step Functions</span> orchestrates: <em>Validate → Wait(3s) → Payment → Wait(3s) → Fulfill</em>, with error catch on every step</li>
+            </ul>
+          </div>
+          <div class="info-section">
+            <h3>Storage</h3>
+            <ul>
+              <li><span class="svc">DynamoDB</span> <em>orders</em> table — tracks order status and per-step timestamps (<code style="font-size:0.78rem">validating_at</code>, <code style="font-size:0.78rem">payment_at</code>, …)</li>
+              <li><span class="svc">S3</span> <em>order-receipts</em> bucket — stores a receipt JSON at <code style="font-size:0.78rem">receipts/&lt;order_id&gt;.json</code> on fulfillment</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Chaos Engineering</h2>
+        <div class="about-grid">
+          <div class="info-section">
+            <h3>What we inject</h3>
+            <p>Toggle <strong>Chaos Mode</strong> in the sidebar to inject a
+            <code style="font-size:0.78rem">ProvisionedThroughputExceededException</code>
+            on every DynamoDB <code style="font-size:0.78rem">UpdateItem</code> call via
+            the LocalStack Chaos API (<code style="font-size:0.78rem">POST /_localstack/chaos/faults</code>).</p>
+          </div>
+          <div class="info-section">
+            <h3>What breaks</h3>
+            <ul>
+              <li>The <em>order-processor</em> Lambda tries to update order status before starting the state machine</li>
+              <li>DynamoDB throws → Lambda fails → SQS retries the message 3×</li>
+              <li>After 3 failures the message is routed to the <strong>DLQ</strong></li>
+              <li>Order stays stuck in <em>pending</em> indefinitely</li>
+            </ul>
+          </div>
+          <div class="info-section">
+            <h3>Recovery</h3>
+            <ul>
+              <li>Disable chaos mode to restore normal DynamoDB behaviour</li>
+              <li>SQS automatically re-delivers DLQ messages — orders resume processing through the full pipeline</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Try it out</h2>
+        <div class="about-grid">
+          <div class="info-section">
+            <h3>Happy path</h3>
+            <ul>
+              <li>Go to <strong>Orders</strong> and place an order</li>
+              <li>Watch the status badge and pipeline bar update in real time</li>
+              <li>Expand the row to see per-step timestamps</li>
+            </ul>
+          </div>
+          <div class="info-section">
+            <h3>Chaos scenario</h3>
+            <ul>
+              <li>Enable <strong>Chaos Mode</strong> in the sidebar</li>
+              <li>Place one or more orders — they pile up in <em>pending</em></li>
+              <li>Disable chaos — orders automatically recover and fulfill</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Right sidebar ── -->
+  <aside class="sidebar">
+
+    <div class="card">
+      <h2>Chaos Mode</h2>
+      <div class="chaos-row">
+        <span class="chaos-status off" id="chaos-status-label">Off</span>
+        <label class="toggle-switch" title="Toggle DynamoDB fault injection">
+          <input type="checkbox" id="chaos-toggle" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="fault-list" id="fault-list" style="display:none"></div>
+      <p class="sidebar-hint">
+        Injects <code>ProvisionedThroughputExceededException</code> on
+        DynamoDB <code>UpdateItem</code> — simulates a throttling incident.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>API Endpoint</h2>
+      <span id="api-url-display"></span>
+    </div>
+
+  </aside>
+
+</div><!-- end .page-layout -->
+
+<script>
+  mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+  let mermaidRendered = false;
+
+  const API = window.location.origin + "/restapis/workshop/local/_user_request_";
+  document.getElementById("api-url-display").textContent = API;
+
+  const CHAOS_FAULT = [{
+    service: "dynamodb",
+    operation: "UpdateItem",
+    error: { code: "ProvisionedThroughputExceededException", statusCode: 400 }
+  }];
+
+  const STEPS    = ["pending", "validating", "payment_processing", "fulfilled"];
+  const TERMINAL = new Set(["fulfilled", "failed"]);
+  let refreshTimer = null;
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+
+  function showSection(name) {
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+    document.getElementById("section-" + name).classList.add("active");
+    document.getElementById("nav-" + name).classList.add("active");
+    if (name === "products") loadProducts();
+    if (name === "about" && !mermaidRendered) {
+      mermaid.run({ nodes: document.querySelectorAll(".mermaid") });
+      mermaidRendered = true;
+    }
+  }
+
+  // ── Pipeline helpers ──────────────────────────────────────────────────────
+
+  function stepClass(step, current) {
+    if (current === "failed") return step === "pending" ? "done" : "failed";
+    const ci = STEPS.indexOf(current), si = STEPS.indexOf(step);
+    if (si < ci) return "done";
+    if (si === ci) return "active";
+    return "";
+  }
+
+  function pipeline(status) {
+    const labels = { pending: "pending", validating: "validating", payment_processing: "payment", fulfilled: "fulfilled" };
+    return STEPS.map((s, i) => `
+      ${i > 0 ? '<span class="pipeline-arrow">›</span>' : ""}
+      <span class="pipeline-step ${stepClass(s, status)}">${labels[s]}</span>
+    `).join("");
+  }
+
+  function fmt(ts) {
+    if (!ts) return "—";
+    return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
+  function detailRow(o) {
+    const steps = [
+      { label: "Pending",    ts: o.created_at,    desc: "Order received, queued for processing" },
+      { label: "Validating", ts: o.validating_at, desc: "Checking order details" },
+      { label: "Payment",    ts: o.payment_at,    desc: "Processing payment" },
+      { label: "Fulfilled",  ts: o.fulfilled_at,  desc: o.fulfilled_at ? `Receipt stored in S3 — <a href="${window.location.origin}/order-receipts/receipts/${o.order_id}.json" target="_blank" style="color:#084298;">download</a>` : "Receipt stored in S3" },
+      { label: "Failed",     ts: o.failed_at,     desc: "Processing error — message routed to DLQ" },
+    ].filter(s => s.ts);
+
+    const stepHtml = steps.map(s => `
+      <div class="detail-item">
+        <span class="detail-label">${s.label}</span>
+        <span class="detail-value ts">${fmt(s.ts)}</span>
+        <span style="font-size:0.72rem;color:#888;">${s.desc || ""}</span>
+      </div>`).join("");
+
+    const meta = `
+      <div class="detail-item">
+        <span class="detail-label">Order ID</span>
+        <span class="detail-value">${o.order_id}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Item</span>
+        <span class="detail-value">${escHtml(o.item)} × ${o.quantity}</span>
+      </div>`;
+
+    return `<div class="detail-grid">${meta}${stepHtml}</div>`;
+  }
+
+  function toggleDetail(id) {
+    document.getElementById(`row-${id}`).classList.toggle("expanded");
+    document.getElementById(`detail-${id}`).classList.toggle("visible");
+  }
+
+  // ── Orders ────────────────────────────────────────────────────────────────
+
+  function setAutoRefresh(active) {
+    document.getElementById("refresh-indicator").className = active ? "active" : "";
+    if (active && !refreshTimer) {
+      refreshTimer = setInterval(loadOrders, 3000);
+    } else if (!active && refreshTimer) {
+      clearInterval(refreshTimer);
+      refreshTimer = null;
+    }
+  }
+
+  async function loadOrders() {
+    try {
+      const res = await fetch(`${API}/orders`);
+      const orders = await res.json();
+      const tbody = document.getElementById("orders-body");
+
+      if (!orders.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty">No orders yet. Place one above!</td></tr>';
+        setAutoRefresh(false);
+        return;
+      }
+
+      const expanded = new Set(
+        [...document.querySelectorAll("tr.data-row.expanded")].map(r => r.dataset.id)
+      );
+
+      const sorted = [...orders].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+      tbody.innerHTML = sorted.flatMap(o => {
+        const isExpanded = expanded.has(o.order_id);
+        return [
+          `<tr class="data-row${isExpanded ? " expanded" : ""}" id="row-${o.order_id}" data-id="${o.order_id}" onclick="toggleDetail('${o.order_id}')">
+            <td><span class="expand-icon">›</span></td>
+            <td class="order-id" title="${o.order_id}">${o.order_id}</td>
+            <td>${escHtml(o.item)}</td>
+            <td>${o.quantity}</td>
+            <td class="timestamp">${fmt(o.created_at)}</td>
+            <td><span class="badge ${o.status}">${o.status.replace(/_/g, " ")}</span></td>
+            <td><div class="pipeline">${pipeline(o.status)}</div></td>
+          </tr>`,
+          `<tr class="detail-row${isExpanded ? " visible" : ""}" id="detail-${o.order_id}">
+            <td colspan="7">${detailRow(o)}</td>
+          </tr>`,
+        ];
+      }).join("");
+
+      setAutoRefresh(orders.some(o => !TERMINAL.has(o.status)));
+    } catch (e) {
+      document.getElementById("orders-body").innerHTML =
+        '<tr><td colspan="7" class="empty">Error loading orders — is LocalStack running?</td></tr>';
+      setAutoRefresh(false);
+    }
+  }
+
+  document.getElementById("order-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn   = document.getElementById("submit-btn");
+    const flash = document.getElementById("flash");
+    btn.disabled = true;
+    flash.className = "flash";
+    try {
+      const res = await fetch(`${API}/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          item:     document.getElementById("item").value,
+          quantity: parseInt(document.getElementById("quantity").value),
+        }),
+      });
+      const data = await res.json();
+      flash.className = "flash success";
+      flash.textContent = `Order placed! ID: ${data.order_id}`;
+      document.getElementById("quantity").value = "1";
+      loadOrders();
+    } catch (err) {
+      flash.className = "flash error";
+      flash.textContent = `Error: ${err.message}`;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ── Chaos mode ────────────────────────────────────────────────────────────
+
+  async function checkChaos() {
+    try {
+      const res    = await fetch(`${window.location.origin}/_localstack/chaos/faults`);
+      const faults = await res.json();
+      const active = Array.isArray(faults) && faults.length > 0;
+
+      const toggle = document.getElementById("chaos-toggle");
+      const label  = document.getElementById("chaos-status-label");
+      const list   = document.getElementById("fault-list");
+
+      toggle.checked       = active;
+      label.textContent    = active ? "On" : "Off";
+      label.className      = "chaos-status " + (active ? "on" : "off");
+      list.style.display   = active ? "block" : "none";
+      if (active) list.innerHTML = faults.map(f => {
+        const code = f.error?.code || f.error || "";
+        const words = code.replace(/Exception$/, "").match(/[A-Z][a-z]+/g) || [code];
+        const abbr = words.map(w => w[0]).join("") || code.slice(0, 6);
+        return `<span title="${code}">${f.service} · ${f.operation} → ${abbr}</span>`;
+      }).join("\n");
+    } catch (e) { /* ignore */ }
+  }
+
+  document.getElementById("chaos-toggle").addEventListener("change", async function () {
+    const payload = this.checked ? CHAOS_FAULT : [];
+    try {
+      await fetch(`${window.location.origin}/_localstack/chaos/faults`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      await checkChaos();
+    } catch (e) {
+      this.checked = !this.checked;
+    }
+  });
+
+  // ── Products ──────────────────────────────────────────────────────────────
+
+  let productsCache = [];
+
+  async function loadProducts() {
+    try {
+      const res = await fetch(`${API}/products`);
+      productsCache = await res.json();
+
+      // Populate order form dropdown
+      const sel = document.getElementById("item");
+      sel.innerHTML = productsCache.map(p =>
+        `<option value="${escHtml(p.name)}">${escHtml(p.name)} — $${Number(p.price).toFixed(2)}</option>`
+      ).join("");
+
+      // Populate products table
+      const tbody = document.getElementById("products-body");
+      if (productsCache.length) {
+        tbody.innerHTML = productsCache.map(p => `
+          <tr>
+            <td><strong>${escHtml(p.name)}</strong></td>
+            <td style="color:#666;font-size:0.85rem;">${escHtml(p.description)}</td>
+            <td style="font-family:monospace;">$${Number(p.price).toFixed(2)}</td>
+          </tr>`).join("");
+      } else {
+        tbody.innerHTML = '<tr><td colspan="3" class="empty">No products found.</td></tr>';
+      }
+    } catch (e) {
+      document.getElementById("products-body").innerHTML =
+        '<tr><td colspan="3" class="empty">Error loading products.</td></tr>';
+    }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+
+  checkChaos();
+  setInterval(checkChaos, 5000);
+  loadOrders();
+  loadProducts();
+</script>
+</body>
+</html>

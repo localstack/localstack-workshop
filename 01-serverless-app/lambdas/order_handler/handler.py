@@ -1,13 +1,22 @@
 import json
 import os
 import uuid
+from datetime import datetime, timezone
+from decimal import Decimal
 import boto3
 
-dynamodb = boto3.resource("dynamodb", endpoint_url=os.environ.get("AWS_ENDPOINT_URL"))
-sqs = boto3.client("sqs", endpoint_url=os.environ.get("AWS_ENDPOINT_URL"))
+dynamodb = boto3.resource("dynamodb")
+sqs = boto3.client("sqs")
 
-TABLE_NAME = os.environ["ORDERS_TABLE"]
-QUEUE_URL = os.environ["ORDERS_QUEUE_URL"]
+TABLE_NAME     = os.environ["ORDERS_TABLE"]
+PRODUCTS_TABLE = os.environ["PRODUCTS_TABLE"]
+QUEUE_URL      = os.environ["ORDERS_QUEUE_URL"]
+DLQ_URL        = os.environ.get("ORDERS_DLQ_URL", "")
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        return int(o) if isinstance(o, Decimal) else super().default(o)
+
 
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
@@ -18,9 +27,16 @@ CORS_HEADERS = {
 
 def handler(event, context):
     method = event.get("httpMethod", "")
+    path   = event.get("path", "")
 
     if method == "OPTIONS":
         return {"statusCode": 200, "headers": CORS_HEADERS, "body": ""}
+
+    if method == "POST" and path.endswith("/replay"):
+        return replay_dlq()
+
+    if method == "GET" and "/products" in path:
+        return list_products()
 
     if method == "GET":
         return list_orders()
@@ -31,6 +47,29 @@ def handler(event, context):
     return {"statusCode": 405, "headers": CORS_HEADERS, "body": "Method Not Allowed"}
 
 
+def replay_dlq():
+    resp = sqs.receive_message(QueueUrl=DLQ_URL, MaxNumberOfMessages=10)
+    messages = resp.get("Messages", [])
+    for msg in messages:
+        sqs.send_message(QueueUrl=QUEUE_URL, MessageBody=msg["Body"])
+        sqs.delete_message(QueueUrl=DLQ_URL, ReceiptHandle=msg["ReceiptHandle"])
+    return {
+        "statusCode": 200,
+        "headers": {**CORS_HEADERS, "Content-Type": "application/json"},
+        "body": json.dumps({"replayed": len(messages)}),
+    }
+
+
+def list_products():
+    table = dynamodb.Table(PRODUCTS_TABLE)
+    items = sorted(table.scan().get("Items", []), key=lambda x: x.get("name", ""))
+    return {
+        "statusCode": 200,
+        "headers": {**CORS_HEADERS, "Content-Type": "application/json"},
+        "body": json.dumps(items, cls=DecimalEncoder),
+    }
+
+
 def list_orders():
     table = dynamodb.Table(TABLE_NAME)
     result = table.scan()
@@ -38,19 +77,20 @@ def list_orders():
     return {
         "statusCode": 200,
         "headers": {**CORS_HEADERS, "Content-Type": "application/json"},
-        "body": json.dumps(items),
+        "body": json.dumps(items, cls=DecimalEncoder),
     }
 
 
 def create_order(event):
     body = json.loads(event.get("body") or "{}")
-    order_id = str(uuid.uuid4())
+    order_id = uuid.uuid4().hex[:12]
 
     order = {
         "order_id": order_id,
         "item": body.get("item", "unknown"),
         "quantity": int(body.get("quantity", 1)),
         "status": "pending",
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
 
     table = dynamodb.Table(TABLE_NAME)

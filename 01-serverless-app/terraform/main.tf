@@ -14,18 +14,44 @@ provider "aws" {
   skip_credentials_validation = true
   skip_metadata_api_check     = true
   skip_requesting_account_id  = true
-
-  endpoints {
-    apigateway = "http://localhost:4566"
-    dynamodb   = "http://localhost:4566"
-    iam        = "http://localhost:4566"
-    lambda     = "http://localhost:4566"
-    s3         = "http://localhost:4566"
-    sqs        = "http://localhost:4566"
-  }
 }
 
 # ── DynamoDB ──────────────────────────────────────────────────────────────────
+
+resource "aws_dynamodb_table" "products" {
+  name         = "products"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "product_id"
+
+  attribute {
+    name = "product_id"
+    type = "S"
+  }
+}
+
+locals {
+  products = [
+    { product_id = "ls-tshirt",      name = "LocalStack T-Shirt",    description = "Classic logo tee",             price = "24.99" },
+    { product_id = "ls-hoodie",      name = "LocalStack Hoodie",     description = "Warm & cloud-native",          price = "49.99" },
+    { product_id = "ls-cap",         name = "LocalStack Cap",        description = "Keep the sun off your stack",  price = "19.99" },
+    { product_id = "ls-mug",         name = "LocalStack Mug",        description = "Fill it with local coffee",    price = "14.99" },
+    { product_id = "ls-stickers",    name = "Sticker Pack",          description = "10 cloud-native stickers",     price = "4.99"  },
+    { product_id = "ls-socks",       name = "LocalStack Socks",      description = "Deploy faster on your feet",   price = "9.99"  },
+  ]
+}
+
+resource "aws_dynamodb_table_item" "products" {
+  for_each   = { for p in local.products : p.product_id => p }
+  table_name = aws_dynamodb_table.products.name
+  hash_key   = aws_dynamodb_table.products.hash_key
+
+  item = jsonencode({
+    product_id  = { S = each.value.product_id }
+    name        = { S = each.value.name }
+    description = { S = each.value.description }
+    price       = { N = each.value.price }
+  })
+}
 
 resource "aws_dynamodb_table" "orders" {
   name         = "orders"
@@ -81,9 +107,9 @@ resource "aws_iam_role_policy" "lambda_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Action = ["dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:GetItem", "dynamodb:Scan"]
-        Resource = aws_dynamodb_table.orders.arn
+        Effect   = "Allow"
+        Action   = ["dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:GetItem", "dynamodb:Scan"]
+        Resource = [aws_dynamodb_table.orders.arn, aws_dynamodb_table.products.arn]
       },
       {
         Effect   = "Allow"
@@ -94,8 +120,39 @@ resource "aws_iam_role_policy" "lambda_policy" {
         Effect   = "Allow"
         Action   = ["s3:PutObject", "s3:GetObject"]
         Resource = "${aws_s3_bucket.receipts.arn}/*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = "states:StartExecution"
+        Resource = local.state_machine_arn
       }
     ]
+  })
+}
+
+resource "aws_iam_role" "sfn_exec" {
+  name = "sfn-exec-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "states.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "sfn_policy" {
+  role = aws_iam_role.sfn_exec.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "lambda:InvokeFunction"
+      Resource = aws_lambda_function.order_processor.arn
+    }]
   })
 }
 
@@ -117,9 +174,10 @@ resource "aws_lambda_function" "order_handler" {
 
   environment {
     variables = {
-      ORDERS_TABLE      = aws_dynamodb_table.orders.name
-      ORDERS_QUEUE_URL  = aws_sqs_queue.orders.url
-      AWS_ENDPOINT_URL  = "http://localhost:4566"
+      ORDERS_TABLE     = aws_dynamodb_table.orders.name
+      PRODUCTS_TABLE   = aws_dynamodb_table.products.name
+      ORDERS_QUEUE_URL = aws_sqs_queue.orders.url
+      ORDERS_DLQ_URL   = aws_sqs_queue.orders_dlq.url
     }
   }
 }
@@ -139,14 +197,81 @@ resource "aws_lambda_function" "order_processor" {
   runtime          = "python3.12"
   filename         = data.archive_file.order_processor.output_path
   source_code_hash = data.archive_file.order_processor.output_base64sha256
+  timeout          = 30
 
   environment {
     variables = {
-      ORDERS_TABLE     = aws_dynamodb_table.orders.name
-      RECEIPTS_BUCKET  = aws_s3_bucket.receipts.bucket
-      AWS_ENDPOINT_URL = "http://localhost:4566"
+      ORDERS_TABLE      = aws_dynamodb_table.orders.name
+      RECEIPTS_BUCKET   = aws_s3_bucket.receipts.bucket
+      STATE_MACHINE_ARN = local.state_machine_arn
     }
   }
+}
+
+# ── Step Functions ────────────────────────────────────────────────────────────
+
+resource "aws_sfn_state_machine" "order_processing" {
+  name     = "order-processing"
+  role_arn = aws_iam_role.sfn_exec.arn
+
+  definition = jsonencode({
+    StartAt = "ValidateOrder"
+    States = {
+      ValidateOrder = {
+        Type     = "Task"
+        Resource = aws_lambda_function.order_processor.arn
+        Parameters = {
+          "step"    = "validate"
+          "order.$" = "$.order"
+        }
+        ResultPath = "$.order"
+        Catch = [{ ErrorEquals = ["States.ALL"], Next = "HandleFailure", ResultPath = "$.error" }]
+        Next = "WaitForPayment"
+      }
+      WaitForPayment = {
+        Type    = "Wait"
+        Seconds = 3
+        Next    = "ProcessPayment"
+      }
+      ProcessPayment = {
+        Type     = "Task"
+        Resource = aws_lambda_function.order_processor.arn
+        Parameters = {
+          "step"    = "process_payment"
+          "order.$" = "$.order"
+        }
+        ResultPath = "$.order"
+        Catch = [{ ErrorEquals = ["States.ALL"], Next = "HandleFailure", ResultPath = "$.error" }]
+        Next = "WaitForFulfillment"
+      }
+      WaitForFulfillment = {
+        Type    = "Wait"
+        Seconds = 3
+        Next    = "FulfillOrder"
+      }
+      FulfillOrder = {
+        Type     = "Task"
+        Resource = aws_lambda_function.order_processor.arn
+        Parameters = {
+          "step"    = "fulfill"
+          "order.$" = "$.order"
+        }
+        ResultPath = "$.order"
+        Catch = [{ ErrorEquals = ["States.ALL"], Next = "HandleFailure", ResultPath = "$.error" }]
+        End = true
+      }
+      HandleFailure = {
+        Type     = "Task"
+        Resource = aws_lambda_function.order_processor.arn
+        Parameters = {
+          "step"    = "handle_failure"
+          "order.$" = "$.order"
+        }
+        ResultPath = "$.order"
+        End = true
+      }
+    }
+  })
 }
 
 resource "aws_lambda_event_source_mapping" "sqs_to_processor" {
@@ -159,6 +284,9 @@ resource "aws_lambda_event_source_mapping" "sqs_to_processor" {
 
 resource "aws_api_gateway_rest_api" "orders_api" {
   name = "orders-api"
+  tags = {
+    "_custom_id_" = "workshop"
+  }
 }
 
 resource "aws_api_gateway_resource" "orders" {
@@ -215,6 +343,82 @@ resource "aws_api_gateway_integration" "options_order_handler" {
   uri                     = aws_lambda_function.order_handler.invoke_arn
 }
 
+resource "aws_api_gateway_resource" "products" {
+  rest_api_id = aws_api_gateway_rest_api.orders_api.id
+  parent_id   = aws_api_gateway_rest_api.orders_api.root_resource_id
+  path_part   = "products"
+}
+
+resource "aws_api_gateway_method" "get_products" {
+  rest_api_id   = aws_api_gateway_rest_api.orders_api.id
+  resource_id   = aws_api_gateway_resource.products.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "options_products" {
+  rest_api_id   = aws_api_gateway_rest_api.orders_api.id
+  resource_id   = aws_api_gateway_resource.products.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "get_products_handler" {
+  rest_api_id             = aws_api_gateway_rest_api.orders_api.id
+  resource_id             = aws_api_gateway_resource.products.id
+  http_method             = aws_api_gateway_method.get_products.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.order_handler.invoke_arn
+}
+
+resource "aws_api_gateway_integration" "options_products_handler" {
+  rest_api_id             = aws_api_gateway_rest_api.orders_api.id
+  resource_id             = aws_api_gateway_resource.products.id
+  http_method             = aws_api_gateway_method.options_products.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.order_handler.invoke_arn
+}
+
+resource "aws_api_gateway_resource" "orders_replay" {
+  rest_api_id = aws_api_gateway_rest_api.orders_api.id
+  parent_id   = aws_api_gateway_resource.orders.id
+  path_part   = "replay"
+}
+
+resource "aws_api_gateway_method" "post_replay" {
+  rest_api_id   = aws_api_gateway_rest_api.orders_api.id
+  resource_id   = aws_api_gateway_resource.orders_replay.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "options_replay" {
+  rest_api_id   = aws_api_gateway_rest_api.orders_api.id
+  resource_id   = aws_api_gateway_resource.orders_replay.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "post_replay_handler" {
+  rest_api_id             = aws_api_gateway_rest_api.orders_api.id
+  resource_id             = aws_api_gateway_resource.orders_replay.id
+  http_method             = aws_api_gateway_method.post_replay.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.order_handler.invoke_arn
+}
+
+resource "aws_api_gateway_integration" "options_replay_handler" {
+  rest_api_id             = aws_api_gateway_rest_api.orders_api.id
+  resource_id             = aws_api_gateway_resource.orders_replay.id
+  http_method             = aws_api_gateway_method.options_replay.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.order_handler.invoke_arn
+}
+
 resource "aws_lambda_permission" "apigw" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.order_handler.function_name
@@ -226,17 +430,38 @@ resource "aws_api_gateway_deployment" "orders_api" {
   rest_api_id = aws_api_gateway_rest_api.orders_api.id
   stage_name  = "local"
 
+  triggers = {
+    redeployment = sha1(jsonencode([
+      aws_api_gateway_integration.post_order_handler.id,
+      aws_api_gateway_integration.get_orders_handler.id,
+      aws_api_gateway_integration.options_order_handler.id,
+      aws_api_gateway_integration.post_replay_handler.id,
+      aws_api_gateway_integration.options_replay_handler.id,
+      aws_api_gateway_integration.get_products_handler.id,
+      aws_api_gateway_integration.options_products_handler.id,
+    ]))
+  }
+
   depends_on = [
     aws_api_gateway_integration.post_order_handler,
     aws_api_gateway_integration.get_orders_handler,
     aws_api_gateway_integration.options_order_handler,
+    aws_api_gateway_integration.post_replay_handler,
+    aws_api_gateway_integration.options_replay_handler,
+    aws_api_gateway_integration.get_products_handler,
+    aws_api_gateway_integration.options_products_handler,
   ]
 }
 
 # ── S3 Website ────────────────────────────────────────────────────────────────
 
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
 locals {
-  api_endpoint = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.orders_api.id}/local/_user_request_"
+  api_id            = "workshop"
+  api_endpoint      = "http://localhost:4566/restapis/${local.api_id}/local/_user_request_"
+  state_machine_arn = "arn:aws:states:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:stateMachine:order-processing"
 }
 
 resource "aws_s3_bucket" "website" {
@@ -273,8 +498,9 @@ resource "aws_s3_bucket_policy" "website" {
 resource "aws_s3_object" "index_html" {
   bucket       = aws_s3_bucket.website.id
   key          = "index.html"
-  content      = templatefile("${path.module}/../website/index.html.tpl", { api_endpoint = local.api_endpoint })
+  source       = "${path.module}/../website/index.html"
   content_type = "text/html"
+  etag         = filemd5("${path.module}/../website/index.html")
 }
 
 output "api_endpoint" {

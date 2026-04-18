@@ -28,7 +28,8 @@ init: ## Initialise Terraform (only needed once)
 	cd $(TERRAFORM_DIR) && tflocal init
 
 deploy: ## Deploy the full app to LocalStack via Terraform
-	cd $(TERRAFORM_DIR) && tflocal init && tflocal apply -auto-approve
+	@[ -d $(TERRAFORM_DIR)/.terraform ] || (cd $(TERRAFORM_DIR) && tflocal init)
+	cd $(TERRAFORM_DIR) && tflocal apply -auto-approve
 
 destroy: ## Tear down all deployed resources
 	cd $(TERRAFORM_DIR) && tflocal destroy -auto-approve
@@ -63,7 +64,8 @@ inject-fault: ## Inject DynamoDB throttling fault (breaks order_processor)
 	  -d @04-chaos-engineering/faults/ddb-throttle-localstack.json | python3 -m json.tool
 
 remove-fault: ## Remove all active fault injections
-	curl -s -X DELETE http://localhost:4566/_localstack/chaos/faults
+	curl -s -X POST http://localhost:4566/_localstack/chaos/faults \
+	  -H "Content-Type: application/json" -d '[]'
 
 replay-dlq: ## Replay messages from the DLQ back to the main queue
 	awslocal sqs receive-message \
