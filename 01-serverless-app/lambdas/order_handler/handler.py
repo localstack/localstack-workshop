@@ -1,6 +1,7 @@
 import json
 import os
 import uuid
+from datetime import datetime, timezone
 from decimal import Decimal
 import boto3
 
@@ -57,6 +58,7 @@ def create_order(event):
         "item": body.get("item", "unknown"),
         "quantity": int(body.get("quantity", 1)),
         "status": "pending",
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
 
     table = dynamodb.Table(TABLE_NAME)

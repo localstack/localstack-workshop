@@ -14,15 +14,6 @@ provider "aws" {
   skip_credentials_validation = true
   skip_metadata_api_check     = true
   skip_requesting_account_id  = true
-
-  endpoints {
-    apigateway = "http://localhost:4566"
-    dynamodb   = "http://localhost:4566"
-    iam        = "http://localhost:4566"
-    lambda     = "http://localhost:4566"
-    s3         = "http://localhost:4566"
-    sqs        = "http://localhost:4566"
-  }
 }
 
 # ── DynamoDB ──────────────────────────────────────────────────────────────────
@@ -81,8 +72,8 @@ resource "aws_iam_role_policy" "lambda_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Action = ["dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:GetItem", "dynamodb:Scan"]
+        Effect   = "Allow"
+        Action   = ["dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:GetItem", "dynamodb:Scan"]
         Resource = aws_dynamodb_table.orders.arn
       },
       {
@@ -94,8 +85,39 @@ resource "aws_iam_role_policy" "lambda_policy" {
         Effect   = "Allow"
         Action   = ["s3:PutObject", "s3:GetObject"]
         Resource = "${aws_s3_bucket.receipts.arn}/*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = "states:StartExecution"
+        Resource = aws_sfn_state_machine.order_processing.arn
       }
     ]
+  })
+}
+
+resource "aws_iam_role" "sfn_exec" {
+  name = "sfn-exec-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "states.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "sfn_policy" {
+  role = aws_iam_role.sfn_exec.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "lambda:InvokeFunction"
+      Resource = aws_lambda_function.order_processor.arn
+    }]
   })
 }
 
@@ -141,10 +163,77 @@ resource "aws_lambda_function" "order_processor" {
 
   environment {
     variables = {
-      ORDERS_TABLE    = aws_dynamodb_table.orders.name
-      RECEIPTS_BUCKET = aws_s3_bucket.receipts.bucket
+      ORDERS_TABLE      = aws_dynamodb_table.orders.name
+      RECEIPTS_BUCKET   = aws_s3_bucket.receipts.bucket
+      STATE_MACHINE_ARN = aws_sfn_state_machine.order_processing.arn
     }
   }
+}
+
+# ── Step Functions ────────────────────────────────────────────────────────────
+
+resource "aws_sfn_state_machine" "order_processing" {
+  name     = "order-processing"
+  role_arn = aws_iam_role.sfn_exec.arn
+
+  definition = jsonencode({
+    StartAt = "ValidateOrder"
+    States = {
+      ValidateOrder = {
+        Type     = "Task"
+        Resource = aws_lambda_function.order_processor.arn
+        Parameters = {
+          "step"    = "validate"
+          "order.$" = "$.order"
+        }
+        ResultPath = "$.order"
+        Catch = [{ ErrorEquals = ["States.ALL"], Next = "HandleFailure", ResultPath = "$.error" }]
+        Next = "WaitForPayment"
+      }
+      WaitForPayment = {
+        Type    = "Wait"
+        Seconds = 3
+        Next    = "ProcessPayment"
+      }
+      ProcessPayment = {
+        Type     = "Task"
+        Resource = aws_lambda_function.order_processor.arn
+        Parameters = {
+          "step"    = "process_payment"
+          "order.$" = "$.order"
+        }
+        ResultPath = "$.order"
+        Catch = [{ ErrorEquals = ["States.ALL"], Next = "HandleFailure", ResultPath = "$.error" }]
+        Next = "WaitForFulfillment"
+      }
+      WaitForFulfillment = {
+        Type    = "Wait"
+        Seconds = 3
+        Next    = "FulfillOrder"
+      }
+      FulfillOrder = {
+        Type     = "Task"
+        Resource = aws_lambda_function.order_processor.arn
+        Parameters = {
+          "step"    = "fulfill"
+          "order.$" = "$.order"
+        }
+        ResultPath = "$.order"
+        Catch = [{ ErrorEquals = ["States.ALL"], Next = "HandleFailure", ResultPath = "$.error" }]
+        End = true
+      }
+      HandleFailure = {
+        Type     = "Task"
+        Resource = aws_lambda_function.order_processor.arn
+        Parameters = {
+          "step"    = "handle_failure"
+          "order.$" = "$.order"
+        }
+        ResultPath = "$.order"
+        End = true
+      }
+    }
+  })
 }
 
 resource "aws_lambda_event_source_mapping" "sqs_to_processor" {
