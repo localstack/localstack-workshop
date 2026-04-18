@@ -31,20 +31,19 @@ jobs:
           DEBUG=1 LOCALSTACK_APPINSPECTOR_ENABLE=1 localstack start -d
           localstack wait
 
-      - name: Build fulfillment image
-        run: |
-          ECR_REGISTRY="000000000000.dkr.ecr.us-east-1.localhost.localstack.cloud:4566"
-          awslocal ecr create-repository --repository-name fulfillment 2>/dev/null || true
-          awslocal ecr get-login-password | \
-            docker login --username AWS --password-stdin "$ECR_REGISTRY"
-          docker build -t "$ECR_REGISTRY/fulfillment:latest" 01-serverless-app/services/fulfillment
-          docker push "$ECR_REGISTRY/fulfillment:latest"
-
-      - name: Deploy app via Terraform
+      - name: Deploy infrastructure via Terraform
         run: |
           cd 01-serverless-app/terraform
           tflocal init
           tflocal apply -auto-approve
+
+      - name: Build and push fulfillment image
+        run: |
+          ECR_REGISTRY="000000000000.dkr.ecr.us-east-1.localhost.localstack.cloud:4566"
+          awslocal ecr get-login-password | \
+            docker login --username AWS --password-stdin "$ECR_REGISTRY"
+          docker build -t "$ECR_REGISTRY/fulfillment:latest" 01-serverless-app/services/fulfillment
+          docker push "$ECR_REGISTRY/fulfillment:latest"
 
       - name: Run E2E tests
         run: |

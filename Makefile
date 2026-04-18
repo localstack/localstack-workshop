@@ -30,15 +30,15 @@ init: ## Initialise Terraform (only needed once)
 	cd $(TERRAFORM_DIR) && tflocal init
 
 build: ## Build and push the fulfillment service image to local ECR
-	awslocal ecr create-repository --repository-name fulfillment 2>/dev/null || true
 	awslocal ecr get-login-password | \
 	  docker login --username AWS --password-stdin $(ECR_REGISTRY)
 	docker build -t $(ECR_REGISTRY)/fulfillment:latest $(FULFILLMENT_DIR)
 	docker push $(ECR_REGISTRY)/fulfillment:latest
 
-deploy: build ## Build fulfillment image then deploy the full app via Terraform
+deploy: ## Deploy the full app to LocalStack via Terraform, then build the fulfillment image
 	@[ -d $(TERRAFORM_DIR)/.terraform ] || (cd $(TERRAFORM_DIR) && tflocal init)
 	cd $(TERRAFORM_DIR) && tflocal apply -auto-approve
+	$(MAKE) build
 
 destroy: ## Tear down all deployed resources
 	cd $(TERRAFORM_DIR) && tflocal destroy -auto-approve
