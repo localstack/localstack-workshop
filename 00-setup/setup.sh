@@ -13,9 +13,9 @@ if [ -n "$TOKEN_URL" ]; then
   echo "LOCALSTACK_AUTH_TOKEN=$TOKEN" >> "${HOME}/.zshrc" 2>/dev/null || true
   echo "Token set."
 elif [ -z "${LOCALSTACK_AUTH_TOKEN:-}" ]; then
-  echo "No token found. Set LOCALSTACK_AUTH_TOKEN or WORKSHOP_TOKEN_URL."
+  echo "No token found. Set LOCALSTACK_AUTH_TOKEN or WORKSHOP_TOKEN_URL and re-run this script."
   echo "  export LOCALSTACK_AUTH_TOKEN=<your-token>"
-  exit 1
+  exit 0
 else
   echo "Using existing LOCALSTACK_AUTH_TOKEN."
 fi

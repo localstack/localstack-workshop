@@ -1,4 +1,4 @@
-# LocalStack Workshop — AWS Community Day
+# LocalStack Workshop
 
 Hands-on workshop: local serverless development with [LocalStack](https://localstack.cloud).
 

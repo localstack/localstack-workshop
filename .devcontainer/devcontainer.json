@@ -4,8 +4,12 @@
   },
   "customizations": {
     "vscode": {
+      "settings": {
+        "localstack.cli.location": "/home/codespace/.python/current/bin/localstack"
+      },
       "extensions": [
         "amazonwebservices.aws-toolkit-vscode",
+        "localstack.localstack",
         "hashicorp.terraform"
       ]
     },
@@ -15,5 +19,5 @@
       ]
     }
   },
-  "postStartCommand": "echo 'Run ./00-setup/setup.sh to configure your auth token and start LocalStack.'"
+  "postStartCommand": "bash ./00-setup/setup.sh"
 }
