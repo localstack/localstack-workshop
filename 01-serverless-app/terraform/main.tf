@@ -89,7 +89,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
       {
         Effect   = "Allow"
         Action   = "states:StartExecution"
-        Resource = aws_sfn_state_machine.order_processing.arn
+        Resource = local.state_machine_arn
       }
     ]
   })
@@ -165,7 +165,7 @@ resource "aws_lambda_function" "order_processor" {
     variables = {
       ORDERS_TABLE      = aws_dynamodb_table.orders.name
       RECEIPTS_BUCKET   = aws_s3_bucket.receipts.bucket
-      STATE_MACHINE_ARN = aws_sfn_state_machine.order_processing.arn
+      STATE_MACHINE_ARN = local.state_machine_arn
     }
   }
 }
@@ -325,9 +325,13 @@ resource "aws_api_gateway_deployment" "orders_api" {
 
 # ── S3 Website ────────────────────────────────────────────────────────────────
 
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
 locals {
-  api_id       = "workshop"
-  api_endpoint = "http://localhost:4566/restapis/${local.api_id}/local/_user_request_"
+  api_id            = "workshop"
+  api_endpoint      = "http://localhost:4566/restapis/${local.api_id}/local/_user_request_"
+  state_machine_arn = "arn:aws:states:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:stateMachine:order-processing"
 }
 
 resource "aws_s3_bucket" "website" {
