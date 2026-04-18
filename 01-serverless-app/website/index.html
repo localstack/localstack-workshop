@@ -127,7 +127,7 @@
   <div class="card">
     <div class="table-header">
       <h2>Orders</h2>
-      <span class="refresh-note" id="refresh-note">Refreshing every 5s</span>
+      <button id="refresh-btn" onclick="loadOrders()" style="padding:0.3rem 0.9rem;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:0.85rem;">↻ Refresh</button>
     </div>
     <table>
       <thead>
@@ -169,7 +169,7 @@
         </tr>
       `).join("");
     } catch (e) {
-      document.getElementById("refresh-note").textContent = "Error loading orders";
+      document.getElementById("refresh-btn").textContent = "↻ Refresh (error)";
     }
   }
 
@@ -209,7 +209,6 @@
   }
 
   loadOrders();
-  setInterval(loadOrders, 5000);
 </script>
 </body>
 </html>
