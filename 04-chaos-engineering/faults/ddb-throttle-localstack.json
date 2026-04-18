@@ -2,7 +2,9 @@
   {
     "service": "dynamodb",
     "operation": "UpdateItem",
-    "error": "ProvisionedThroughputExceededException",
-    "rate": 1.0
+    "error": {
+      "code": "ProvisionedThroughputExceededException",
+      "statusCode": 400
+    }
   }
 ]
