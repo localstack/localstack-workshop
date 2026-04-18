@@ -10,6 +10,7 @@ sqs = boto3.client("sqs")
 
 TABLE_NAME = os.environ["ORDERS_TABLE"]
 QUEUE_URL = os.environ["ORDERS_QUEUE_URL"]
+DLQ_URL   = os.environ.get("ORDERS_DLQ_URL", "")
 
 class DecimalEncoder(json.JSONEncoder):
     def default(self, o):
@@ -25,9 +26,13 @@ CORS_HEADERS = {
 
 def handler(event, context):
     method = event.get("httpMethod", "")
+    path   = event.get("path", "")
 
     if method == "OPTIONS":
         return {"statusCode": 200, "headers": CORS_HEADERS, "body": ""}
+
+    if method == "POST" and path.endswith("/replay"):
+        return replay_dlq()
 
     if method == "GET":
         return list_orders()
@@ -36,6 +41,19 @@ def handler(event, context):
         return create_order(event)
 
     return {"statusCode": 405, "headers": CORS_HEADERS, "body": "Method Not Allowed"}
+
+
+def replay_dlq():
+    resp = sqs.receive_message(QueueUrl=DLQ_URL, MaxNumberOfMessages=10)
+    messages = resp.get("Messages", [])
+    for msg in messages:
+        sqs.send_message(QueueUrl=QUEUE_URL, MessageBody=msg["Body"])
+        sqs.delete_message(QueueUrl=DLQ_URL, ReceiptHandle=msg["ReceiptHandle"])
+    return {
+        "statusCode": 200,
+        "headers": {**CORS_HEADERS, "Content-Type": "application/json"},
+        "body": json.dumps({"replayed": len(messages)}),
+    }
 
 
 def list_orders():

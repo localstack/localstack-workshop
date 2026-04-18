@@ -141,6 +141,7 @@ resource "aws_lambda_function" "order_handler" {
     variables = {
       ORDERS_TABLE     = aws_dynamodb_table.orders.name
       ORDERS_QUEUE_URL = aws_sqs_queue.orders.url
+      ORDERS_DLQ_URL   = aws_sqs_queue.orders_dlq.url
     }
   }
 }
@@ -306,6 +307,44 @@ resource "aws_api_gateway_integration" "options_order_handler" {
   uri                     = aws_lambda_function.order_handler.invoke_arn
 }
 
+resource "aws_api_gateway_resource" "orders_replay" {
+  rest_api_id = aws_api_gateway_rest_api.orders_api.id
+  parent_id   = aws_api_gateway_resource.orders.id
+  path_part   = "replay"
+}
+
+resource "aws_api_gateway_method" "post_replay" {
+  rest_api_id   = aws_api_gateway_rest_api.orders_api.id
+  resource_id   = aws_api_gateway_resource.orders_replay.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "options_replay" {
+  rest_api_id   = aws_api_gateway_rest_api.orders_api.id
+  resource_id   = aws_api_gateway_resource.orders_replay.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "post_replay_handler" {
+  rest_api_id             = aws_api_gateway_rest_api.orders_api.id
+  resource_id             = aws_api_gateway_resource.orders_replay.id
+  http_method             = aws_api_gateway_method.post_replay.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.order_handler.invoke_arn
+}
+
+resource "aws_api_gateway_integration" "options_replay_handler" {
+  rest_api_id             = aws_api_gateway_rest_api.orders_api.id
+  resource_id             = aws_api_gateway_resource.orders_replay.id
+  http_method             = aws_api_gateway_method.options_replay.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.order_handler.invoke_arn
+}
+
 resource "aws_lambda_permission" "apigw" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.order_handler.function_name
@@ -321,6 +360,8 @@ resource "aws_api_gateway_deployment" "orders_api" {
     aws_api_gateway_integration.post_order_handler,
     aws_api_gateway_integration.get_orders_handler,
     aws_api_gateway_integration.options_order_handler,
+    aws_api_gateway_integration.post_replay_handler,
+    aws_api_gateway_integration.options_replay_handler,
   ]
 }
 
