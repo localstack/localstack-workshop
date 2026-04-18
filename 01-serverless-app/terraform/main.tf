@@ -160,6 +160,7 @@ resource "aws_lambda_function" "order_processor" {
   runtime          = "python3.12"
   filename         = data.archive_file.order_processor.output_path
   source_code_hash = data.archive_file.order_processor.output_base64sha256
+  timeout          = 30
 
   environment {
     variables = {
