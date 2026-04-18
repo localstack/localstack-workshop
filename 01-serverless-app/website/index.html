@@ -448,7 +448,8 @@ flowchart LR
 </div><!-- end .page-layout -->
 
 <script>
-  mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+  mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+  let mermaidRendered = false;
 
   const API = window.location.origin + "/restapis/workshop/local/_user_request_";
   document.getElementById("api-url-display").textContent = API;
@@ -470,6 +471,10 @@ flowchart LR
     document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
     document.getElementById("section-" + name).classList.add("active");
     document.getElementById("nav-" + name).classList.add("active");
+    if (name === "about" && !mermaidRendered) {
+      mermaid.run({ nodes: document.querySelectorAll(".mermaid") });
+      mermaidRendered = true;
+    }
   }
 
   // ── Pipeline helpers ──────────────────────────────────────────────────────
