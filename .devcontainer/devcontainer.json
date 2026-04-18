@@ -3,10 +3,17 @@
     "dockerfile": "Dockerfile.github"
   },
   "customizations": {
+    "vscode": {
+      "extensions": [
+        "amazonwebservices.aws-toolkit-vscode",
+        "hashicorp.terraform"
+      ]
+    },
     "codespaces": {
       "openFiles": [
         "README.md"
       ]
     }
-  }
+  },
+  "postStartCommand": "echo 'Run ./00-setup/setup.sh to configure your auth token and start LocalStack.'"
 }

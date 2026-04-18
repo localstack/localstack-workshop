@@ -1,72 +1,87 @@
-![Build Status](https://github.com/localstack/localstack-workshop/actions/workflows/build-test.yml/badge.svg)
+# LocalStack Workshop — AWS Community Day
 
-# LocalStack Workshop
+Hands-on workshop: local serverless development with [LocalStack](https://localstack.cloud).
 
-Repository with code samples for the LocalStack workshop.
+**Duration:** ~3 hours  
+**Level:** Intermediate  
+**Prerequisites:** Docker, Python 3.10+, VS Code (for module 03)
 
-Note: The project can either be cloned and installed on your local machine, or you can spin up a remote development environment (Gitpod, or Github Codespaces) to access the project directly from your browser.
+---
 
-* **Option 1:** Open the project in [Github Codespaces](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=630930347)
-* **Option 2:** Open the project in [Gitpod](https://gitpod.io/#https://github.com/localstack/localstack-workshop)
-* **Option 3:** Run the project locally (see instructions below)
+## What You'll Build
 
-## Prerequisites
+An **Order Processing Pipeline** — a realistic event-driven serverless app:
 
-* Docker
-* Python/`pip`
-* LocalStack Pro auth token ([free trial key here](https://app.localstack.cloud))
-
-## Installation & Getting Started
-
-LocalStack can be started in [different ways](https://docs.localstack.cloud/getting-started/installation/).
-The easiest way (the one we recommend) is through the [LocalStack CLI](https://docs.localstack.cloud/getting-started/installation/#localstack-cli).
-
-First, install the LocalStack command-line interface (CLI):
 ```
-pip install localstack
-```
-Then we can simply start the LocalStack container locally:
-```
-export LOCALSTACK_AUTH_TOKEN=... # insert your auth token here
-DEBUG=1 localstack start
+POST /orders
+    └─▶ API Gateway
+            └─▶ Lambda (order_handler)
+                    ├─▶ DynamoDB  (persist order)
+                    └─▶ SQS       (enqueue for processing)
+                                └─▶ Lambda (order_processor)
+                                        ├─▶ DynamoDB  (update status)
+                                        └─▶ S3        (store receipt)
+                                SQS DLQ ◀─ (on failure)
 ```
 
-Once LocalStack is running in the Docker container, we can issue CLI commands to create and interact with AWS resources. Let's say, for instance, that we want to create a S3 bucket. 
-If you have the [AWS Command Line Interface](https://aws.amazon.com/cli/) installed on your machine, you can simply type:
+Everything runs **locally** via LocalStack — no AWS account needed.
+
+---
+
+## Modules
+
+| # | Module | Topics | Time |
+|---|--------|--------|------|
+| [00](./00-setup/) | Setup | Install tools, start LocalStack, verify | 15m |
+| [01](./01-serverless-app/) | Serverless App | `awslocal` CLI tour + Terraform deploy | 45m |
+| [02](./02-e2e-testing/) | E2E Testing | pytest integration tests | 30m |
+| [03](./03-vscode-debugging/) | Lambda Debugging | VS Code AWS Toolkit breakpoints | 30m |
+| [04](./04-chaos-engineering/) | Chaos Engineering | DDB fault injection, DLQ, retries | 30m |
+| [05](./05-app-inspector/) | App Inspector | Trace requests, visualize topology | 20m |
+| [06](./06-ai-integration/) | AI Integration *(optional)* | LocalStack MCP + Claude Code skills | 10m |
+
+---
+
+## Quick Start (GitHub Codespaces)
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/localstack/localstack-workshop)
+
+The dev container pre-installs all tools. Run the setup script to configure your auth token:
+
+```bash
+./00-setup/setup.sh
 ```
-aws --endpoint=http://localhost.localstack.cloud:4566 s3 mb s3://demo-bucket
+
+## Quick Start (Local)
+
+```bash
+# 1. Install dependencies
+pip install localstack awscli-local terraform-local pytest
+
+# 2. Start LocalStack
+localstack start -d
+
+# 3. Run setup
+./00-setup/setup.sh
 ```
 
-To make things simpler, you might want to install [`awslocal`](https://github.com/localstack/awscli-local), i.e., our wrapper around the AWS CLI. This way, you don't need to set up the endpoint for every CLI command. The previous command would just be:
+---
+
+## Repo Layout
+
 ```
-awslocal s3 mb s3://demo-bucket
+localstack-workshop/
+├── 00-setup/              # environment setup & verification
+├── 01-serverless-app/     # app code (Lambdas + Terraform) — shared by all modules
+│   ├── lambdas/
+│   │   ├── order_handler/
+│   │   └── order_processor/
+│   └── terraform/
+├── 02-e2e-testing/        # pytest test suite
+├── 03-vscode-debugging/   # VS Code launch configs + instructions
+├── 04-chaos-engineering/  # fault injection scripts
+├── 05-app-inspector/      # App Inspector walkthrough
+└── 06-ai-integration/     # MCP server + LocalStack skills demo
 ```
 
-You can create and browse resources in LocalStack also from the research browser.
-Simply, go to our [Web App](https://app.localstack.cloud/), log in, and click on _Resources_ in the top navigation bar. You will gain access to our research browser, where each service has a console to manage its resources.
-
-### Hello World
-
-Every programming language tutorial starts with printing a _Hello World_. Let us have the [equivalent](https://github.com/localstack/localstack-workshop/tree/main/00-hello-world) in LocalStack.
-
-## Sample 1: Deploy a Serverless App on LocalStack
-
-As the next step, we'll deploy a [serverless application](./01-serverless-image-resizer) using Lambda, S3, SNS, and other AWS services.
-This is an app to resize images uploaded to an S3 bucket, using Lambda functions and event-driven processing.
-A simple web fronted using HTML and JavaScript provides a way for users to upload images that are resized and listed.
-
-## Sample 3: Infrastructure-as-Code Tools and Containerized Applications
-
-We mostly interacted with LocalStack through the CLI so far. However, large systems are hardly built this way.
-Luckily, LocalStack supports a [wide range of integrations](https://docs.localstack.cloud/user-guide/integrations/) that will cover your favorite Infrastructure-as-Code (IaC) tool.
-In the following [sample](./02-serverless-api-ecs-apigateway), we will deploy a containerized application (using ECS, Cognito, etc) with either Terraform or CloudFormation.
-
-## Sample 4: AppSync GraphQL APIs for DynamoDB and RDS Aurora PostgreSQL
-
-In this sample, we'll take a closer look at AppSync, a managed services for deploying GraphQL APIs to access data sources like RDS databases or DynamoDB tables.
-The [AppSync GraphQL sample](./03-appsync-graphql-api-cdk) is a simple application that maintaines entries in a database table, and makes them accessible via a GraphQL HTTP endpoint.
-Clients can also subscribe to a WebSocket endpoint to receive real-time updates about new DB entries. The stack is defined via CDK, and deployed fully locally against LocalStack.
-
-## Sample 5: Cloud Pods
-
-Details following soon...
+All modules build on the single app deployed in `01-serverless-app/`.

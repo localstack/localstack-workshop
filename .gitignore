@@ -1,5 +1,16 @@
 .idea/
 node_modules/
 .venv/
-
 .DS_Store
+
+# Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.backup
+01-serverless-app/terraform/.build/*.zip
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
