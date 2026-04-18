@@ -166,17 +166,6 @@
       white-space: pre-wrap; word-break: break-all;
     }
 
-    /* ── DLQ card ── */
-    .dlq-row { display: flex; align-items: center; justify-content: space-between; }
-    .dlq-label {
-      display: flex; align-items: center; gap: 0.4rem;
-      font-size: 0.875rem; font-weight: 500; color: #444;
-      cursor: pointer; user-select: none;
-    }
-    .dlq-label input { cursor: pointer; }
-    #dlq-status { font-size: 0.75rem; color: #1a7a2a; font-weight: 600; display: none; }
-    #dlq-status.active { display: block; margin-top: 0.4rem; }
-
     /* ── API card ── */
     #api-url-display {
       font-family: monospace; font-size: 0.7rem; color: #555;
@@ -457,21 +446,6 @@
     </div>
 
     <div class="card">
-      <h2>DLQ Recovery</h2>
-      <div class="dlq-row">
-        <label class="dlq-label">
-          <input type="checkbox" id="auto-resume-dlq" />
-          Auto-resume
-        </label>
-      </div>
-      <div id="dlq-status"></div>
-      <p class="sidebar-hint">
-        Polls <code>POST /orders/replay</code> every 5 s and re-queues
-        stranded messages from the DLQ.
-      </p>
-    </div>
-
-    <div class="card">
       <h2>API Endpoint</h2>
       <span id="api-url-display"></span>
     </div>
@@ -683,34 +657,6 @@
       await checkChaos();
     } catch (e) {
       this.checked = !this.checked;
-    }
-  });
-
-  // ── DLQ replay ────────────────────────────────────────────────────────────
-
-  let dlqTimer = null;
-
-  async function replayDlq() {
-    try {
-      const res  = await fetch(`${API}/replay`, { method: "POST" });
-      const data = await res.json();
-      const status = document.getElementById("dlq-status");
-      if (data.replayed > 0) {
-        status.textContent = `↺ replayed ${data.replayed} message${data.replayed > 1 ? "s" : ""}`;
-        status.classList.add("active");
-        setTimeout(() => status.classList.remove("active"), 4000);
-        loadOrders();
-      }
-    } catch (e) { /* ignore */ }
-  }
-
-  document.getElementById("auto-resume-dlq").addEventListener("change", function () {
-    if (this.checked) {
-      replayDlq();
-      dlqTimer = setInterval(replayDlq, 5000);
-    } else {
-      clearInterval(dlqTimer);
-      dlqTimer = null;
     }
   });
 
