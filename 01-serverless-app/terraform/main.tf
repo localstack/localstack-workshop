@@ -174,10 +174,42 @@ resource "aws_api_gateway_method" "post_order" {
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "order_handler" {
+resource "aws_api_gateway_method" "get_orders" {
+  rest_api_id   = aws_api_gateway_rest_api.orders_api.id
+  resource_id   = aws_api_gateway_resource.orders.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "options_orders" {
+  rest_api_id   = aws_api_gateway_rest_api.orders_api.id
+  resource_id   = aws_api_gateway_resource.orders.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "post_order_handler" {
   rest_api_id             = aws_api_gateway_rest_api.orders_api.id
   resource_id             = aws_api_gateway_resource.orders.id
   http_method             = aws_api_gateway_method.post_order.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.order_handler.invoke_arn
+}
+
+resource "aws_api_gateway_integration" "get_orders_handler" {
+  rest_api_id             = aws_api_gateway_rest_api.orders_api.id
+  resource_id             = aws_api_gateway_resource.orders.id
+  http_method             = aws_api_gateway_method.get_orders.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.order_handler.invoke_arn
+}
+
+resource "aws_api_gateway_integration" "options_order_handler" {
+  rest_api_id             = aws_api_gateway_rest_api.orders_api.id
+  resource_id             = aws_api_gateway_resource.orders.id
+  http_method             = aws_api_gateway_method.options_orders.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.order_handler.invoke_arn
@@ -194,9 +226,61 @@ resource "aws_api_gateway_deployment" "orders_api" {
   rest_api_id = aws_api_gateway_rest_api.orders_api.id
   stage_name  = "local"
 
-  depends_on = [aws_api_gateway_integration.order_handler]
+  depends_on = [
+    aws_api_gateway_integration.post_order_handler,
+    aws_api_gateway_integration.get_orders_handler,
+    aws_api_gateway_integration.options_order_handler,
+  ]
+}
+
+# ── S3 Website ────────────────────────────────────────────────────────────────
+
+locals {
+  api_endpoint = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.orders_api.id}/local/_user_request_"
+}
+
+resource "aws_s3_bucket" "website" {
+  bucket = "order-workshop-ui"
+}
+
+resource "aws_s3_bucket_public_access_block" "website" {
+  bucket                  = aws_s3_bucket.website.id
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_website_configuration" "website" {
+  bucket = aws_s3_bucket.website.id
+  index_document { suffix = "index.html" }
+}
+
+resource "aws_s3_bucket_policy" "website" {
+  bucket = aws_s3_bucket.website.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = "*"
+      Action    = "s3:GetObject"
+      Resource  = "${aws_s3_bucket.website.arn}/*"
+    }]
+  })
+  depends_on = [aws_s3_bucket_public_access_block.website]
+}
+
+resource "aws_s3_object" "index_html" {
+  bucket       = aws_s3_bucket.website.id
+  key          = "index.html"
+  content      = templatefile("${path.module}/../website/index.html.tpl", { api_endpoint = local.api_endpoint })
+  content_type = "text/html"
 }
 
 output "api_endpoint" {
-  value = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.orders_api.id}/local/_user_request_"
+  value = local.api_endpoint
+}
+
+output "website_url" {
+  value = "http://localhost:4566/order-workshop-ui/index.html"
 }

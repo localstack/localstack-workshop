@@ -79,11 +79,21 @@ curl -s -X POST "$API/orders" \
   -H "Content-Type: application/json" \
   -d '{"item": "LocalStack T-Shirt", "quantity": 1}' | python3 -m json.tool
 
+# List orders
+curl -s "$API/orders" | python3 -m json.tool
+
 # Check DynamoDB
 awslocal dynamodb scan --table-name orders
 
 # Check S3 receipts
 awslocal s3 ls s3://order-receipts/
+```
+
+### Open the UI
+
+```bash
+echo "Website: $(tflocal output -raw website_url)"
+# Open http://localhost:4566/order-workshop-ui/index.html in your browser
 ```
 
 ---

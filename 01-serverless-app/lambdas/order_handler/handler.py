@@ -9,8 +9,40 @@ sqs = boto3.client("sqs", endpoint_url=os.environ.get("AWS_ENDPOINT_URL"))
 TABLE_NAME = os.environ["ORDERS_TABLE"]
 QUEUE_URL = os.environ["ORDERS_QUEUE_URL"]
 
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+}
+
 
 def handler(event, context):
+    method = event.get("httpMethod", "")
+
+    if method == "OPTIONS":
+        return {"statusCode": 200, "headers": CORS_HEADERS, "body": ""}
+
+    if method == "GET":
+        return list_orders()
+
+    if method == "POST":
+        return create_order(event)
+
+    return {"statusCode": 405, "headers": CORS_HEADERS, "body": "Method Not Allowed"}
+
+
+def list_orders():
+    table = dynamodb.Table(TABLE_NAME)
+    result = table.scan()
+    items = sorted(result.get("Items", []), key=lambda x: x.get("order_id", ""))
+    return {
+        "statusCode": 200,
+        "headers": {**CORS_HEADERS, "Content-Type": "application/json"},
+        "body": json.dumps(items),
+    }
+
+
+def create_order(event):
     body = json.loads(event.get("body") or "{}")
     order_id = str(uuid.uuid4())
 
@@ -31,5 +63,6 @@ def handler(event, context):
 
     return {
         "statusCode": 201,
+        "headers": {**CORS_HEADERS, "Content-Type": "application/json"},
         "body": json.dumps({"order_id": order_id, "status": "pending"}),
     }

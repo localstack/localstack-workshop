@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Processing — LocalStack Workshop</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    header img { height: 32px; }
+    header h1 { font-size: 1.2rem; font-weight: 600; }
+    header span { font-size: 0.85rem; color: #aaa; margin-left: auto; }
+
+    main { max-width: 900px; margin: 2rem auto; padding: 0 1.5rem; }
+
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #444; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    form { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
+    label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.875rem; color: #555; }
+    input[type="text"], input[type="number"] {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      width: 200px;
+    }
+    input[type="number"] { width: 80px; }
+    button[type="submit"] {
+      padding: 0.5rem 1.25rem;
+      background: #e8412a;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    button[type="submit"]:hover { background: #c73520; }
+    button[type="submit"]:disabled { background: #ccc; cursor: not-allowed; }
+
+    .flash {
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      margin-top: 0.75rem;
+      display: none;
+    }
+    .flash.success { background: #e6f4ea; color: #1e7e34; display: block; }
+    .flash.error   { background: #fde8e8; color: #c0392b; display: block; }
+
+    .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+    .refresh-note { font-size: 0.78rem; color: #888; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { text-align: left; padding: 0.5rem 0.75rem; color: #666; font-weight: 600; border-bottom: 2px solid #eee; }
+    td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #f0f0f0; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 99px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge.pending   { background: #fff3cd; color: #856404; }
+    .badge.processed { background: #d1f5d3; color: #1a7a2a; }
+    .badge.failed    { background: #fde8e8; color: #c0392b; }
+
+    .order-id { font-family: monospace; font-size: 0.8rem; color: #888; }
+    .empty { text-align: center; color: #aaa; padding: 2rem; }
+
+    #api-bar { font-size: 0.78rem; color: #aaa; margin-bottom: 1rem; }
+    #api-bar code { background: #f0f0f0; padding: 0.1rem 0.4rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Order Processing Pipeline</h1>
+  <span>LocalStack Workshop</span>
+</header>
+
+<main>
+  <p id="api-bar">API endpoint: <code>${api_endpoint}</code></p>
+
+  <div class="card">
+    <h2>New Order</h2>
+    <form id="order-form">
+      <label>
+        Item
+        <input type="text" id="item" placeholder="e.g. LocalStack T-Shirt" required />
+      </label>
+      <label>
+        Quantity
+        <input type="number" id="quantity" value="1" min="1" required />
+      </label>
+      <button type="submit" id="submit-btn">Place Order</button>
+    </form>
+    <div class="flash" id="flash"></div>
+  </div>
+
+  <div class="card">
+    <div class="table-header">
+      <h2>Orders</h2>
+      <span class="refresh-note" id="refresh-note">Refreshing every 5s</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Item</th>
+          <th>Qty</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="orders-body">
+        <tr><td colspan="4" class="empty">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+  const API = "${api_endpoint}";
+
+  async function loadOrders() {
+    try {
+      const res = await fetch(`$${API}/orders`);
+      const orders = await res.json();
+      const tbody = document.getElementById("orders-body");
+      if (!orders.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty">No orders yet. Place one above!</td></tr>';
+        return;
+      }
+      tbody.innerHTML = orders.map(o => `
+        <tr>
+          <td class="order-id">${o.order_id.slice(0, 8)}…</td>
+          <td>${escHtml(o.item)}</td>
+          <td>${o.quantity}</td>
+          <td><span class="badge ${o.status}">${o.status}</span></td>
+        </tr>
+      `).join("");
+    } catch (e) {
+      document.getElementById("refresh-note").textContent = "Error loading orders";
+    }
+  }
+
+  document.getElementById("order-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("submit-btn");
+    const flash = document.getElementById("flash");
+    btn.disabled = true;
+    flash.className = "flash";
+    flash.textContent = "";
+
+    try {
+      const res = await fetch(`$${API}/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          item: document.getElementById("item").value,
+          quantity: parseInt(document.getElementById("quantity").value),
+        }),
+      });
+      const data = await res.json();
+      flash.className = "flash success";
+      flash.textContent = `Order placed! ID: $${data.order_id}`;
+      document.getElementById("item").value = "";
+      document.getElementById("quantity").value = "1";
+      loadOrders();
+    } catch (err) {
+      flash.className = "flash error";
+      flash.textContent = `Error: $${err.message}`;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  function escHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
+  loadOrders();
+  setInterval(loadOrders, 5000);
+</script>
+</body>
+</html>
