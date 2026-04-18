@@ -1,10 +1,9 @@
 import json
-import os
 import uuid
 import boto3
 
-dynamodb = boto3.resource("dynamodb", endpoint_url=os.environ.get("AWS_ENDPOINT_URL"))
-sqs = boto3.client("sqs", endpoint_url=os.environ.get("AWS_ENDPOINT_URL"))
+dynamodb = boto3.resource("dynamodb")
+sqs = boto3.client("sqs")
 
 TABLE_NAME = os.environ["ORDERS_TABLE"]
 QUEUE_URL = os.environ["ORDERS_QUEUE_URL"]

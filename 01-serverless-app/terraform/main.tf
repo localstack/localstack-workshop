@@ -117,9 +117,8 @@ resource "aws_lambda_function" "order_handler" {
 
   environment {
     variables = {
-      ORDERS_TABLE      = aws_dynamodb_table.orders.name
-      ORDERS_QUEUE_URL  = aws_sqs_queue.orders.url
-      AWS_ENDPOINT_URL  = "http://localhost:4566"
+      ORDERS_TABLE     = aws_dynamodb_table.orders.name
+      ORDERS_QUEUE_URL = aws_sqs_queue.orders.url
     }
   }
 }
@@ -142,9 +141,8 @@ resource "aws_lambda_function" "order_processor" {
 
   environment {
     variables = {
-      ORDERS_TABLE     = aws_dynamodb_table.orders.name
-      RECEIPTS_BUCKET  = aws_s3_bucket.receipts.bucket
-      AWS_ENDPOINT_URL = "http://localhost:4566"
+      ORDERS_TABLE    = aws_dynamodb_table.orders.name
+      RECEIPTS_BUCKET = aws_s3_bucket.receipts.bucket
     }
   }
 }

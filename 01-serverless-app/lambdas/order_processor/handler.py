@@ -1,9 +1,8 @@
 import json
-import os
 import boto3
 
-dynamodb = boto3.resource("dynamodb", endpoint_url=os.environ.get("AWS_ENDPOINT_URL"))
-s3 = boto3.client("s3", endpoint_url=os.environ.get("AWS_ENDPOINT_URL"))
+dynamodb = boto3.resource("dynamodb")
+s3 = boto3.client("s3")
 
 TABLE_NAME = os.environ["ORDERS_TABLE"]
 RECEIPTS_BUCKET = os.environ["RECEIPTS_BUCKET"]
