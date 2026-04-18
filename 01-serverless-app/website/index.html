@@ -159,6 +159,60 @@
     #api-bar { font-size: 0.78rem; color: #aaa; margin-bottom: 1rem; }
     #api-bar code { background: #f0f0f0; padding: 0.1rem 0.4rem; border-radius: 4px; }
 
+    details.info-panel {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+    details.info-panel summary {
+      padding: 0.9rem 1.5rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #444;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      user-select: none;
+    }
+    details.info-panel summary::-webkit-details-marker { display: none; }
+    details.info-panel summary::before {
+      content: "›";
+      font-size: 1rem;
+      color: #aaa;
+      transition: transform 0.15s;
+      display: inline-block;
+    }
+    details.info-panel[open] summary::before { transform: rotate(90deg); }
+    .info-body {
+      padding: 0 1.5rem 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+      border-top: 1px solid #f0f0f0;
+      padding-top: 1.25rem;
+    }
+    .info-section h3 { font-size: 0.8rem; font-weight: 700; color: #1a1a2e; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .info-section p, .info-section li { font-size: 0.82rem; color: #555; line-height: 1.55; }
+    .info-section ul { padding-left: 1.1rem; }
+    .info-section li { margin-bottom: 0.2rem; }
+    .service-tag {
+      display: inline-block;
+      background: #eef2ff;
+      color: #3730a3;
+      border-radius: 4px;
+      padding: 0.1rem 0.45rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      margin: 0.15rem 0.1rem;
+      font-family: monospace;
+    }
+
     #chaos-banner {
       display: none;
       background: #fff3cd;
@@ -183,6 +237,55 @@
 
 <main>
   <p id="api-bar">API endpoint: <code id="api-url"></code></p>
+
+  <details class="info-panel">
+    <summary>About this demo</summary>
+    <div class="info-body">
+      <div class="info-section">
+        <h3>What is this?</h3>
+        <p>A fully local serverless order-processing pipeline running on
+        <strong>LocalStack</strong> — an AWS emulator that lets you develop
+        and test cloud applications on your laptop without touching a real AWS account.</p>
+        <p style="margin-top:0.5rem;">Everything here — Lambda, API Gateway, DynamoDB,
+        SQS, Step Functions, S3 — runs locally inside a single Docker container.</p>
+      </div>
+      <div class="info-section">
+        <h3>Architecture</h3>
+        <ul>
+          <li><span class="service-tag">API Gateway</span> exposes <code style="font-size:0.78rem">POST /orders</code> and <code style="font-size:0.78rem">GET /orders</code></li>
+          <li><span class="service-tag">Lambda</span> <em>order-handler</em> writes the order to DynamoDB and enqueues it on SQS</li>
+          <li><span class="service-tag">SQS</span> <em>orders-queue</em> buffers orders; failed messages go to a <em>orders-dlq</em></li>
+          <li><span class="service-tag">Lambda</span> <em>order-processor</em> starts a Step Functions execution per order</li>
+          <li><span class="service-tag">Step Functions</span> orchestrates: Validate → Wait → Payment → Wait → Fulfill (with error catch)</li>
+          <li><span class="service-tag">DynamoDB</span> tracks order status and step timestamps</li>
+          <li><span class="service-tag">S3</span> stores a receipt JSON when an order is fulfilled</li>
+        </ul>
+      </div>
+      <div class="info-section">
+        <h3>Chaos Engineering</h3>
+        <p>Use <strong>make inject-fault</strong> to enable a
+        <code style="font-size:0.78rem">ProvisionedThroughputExceededException</code>
+        on every DynamoDB <code style="font-size:0.78rem">UpdateItem</code> call.
+        This simulates a DynamoDB throttling incident:</p>
+        <ul>
+          <li>New orders get stuck in <em>pending</em> — the processor Lambda throws before starting the state machine</li>
+          <li>SQS retries the message 3 times, then routes it to the <strong>DLQ</strong></li>
+          <li>Run <strong>make remove-fault</strong> to restore normal operation</li>
+          <li>Enable <strong>Auto-resume DLQ</strong> above to automatically replay stranded messages once the fault is cleared</li>
+        </ul>
+      </div>
+      <div class="info-section">
+        <h3>Try it out</h3>
+        <ul>
+          <li>Place an order and watch it move through the pipeline in real time</li>
+          <li>Inject a fault, place more orders, observe them pile up in <em>pending</em></li>
+          <li>Check the chaos banner — it reflects the live fault list from LocalStack</li>
+          <li>Remove the fault and tick <em>Auto-resume DLQ</em> — orders recover automatically</li>
+          <li>Expand any row to see per-step timestamps and details</li>
+        </ul>
+      </div>
+    </div>
+  </details>
 
   <div id="chaos-banner">
     <strong>⚠ Chaos mode active</strong> — fault injections are enabled, orders may fail or get stuck.
