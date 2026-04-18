@@ -634,10 +634,11 @@ flowchart LR
       label.className      = "chaos-status " + (active ? "on" : "off");
       list.style.display   = active ? "block" : "none";
       if (active) list.innerHTML = faults.map(f => {
-        const err = f.error?.code || f.error || "";
-        const short = err.replace(/Exception$/, "").replace(/([A-Z])/g, " $1").trim();
-        return `<span title="${err}">${f.service} / ${f.operation}\n⚡ ${short}</span>`;
-      }).join("\n\n");
+        const code = f.error?.code || f.error || "";
+        const words = code.replace(/Exception$/, "").match(/[A-Z][a-z]+/g) || [code];
+        const abbr = words.map(w => w[0]).join("") || code.slice(0, 6);
+        return `<span title="${code}">${f.service} · ${f.operation} → ${abbr}</span>`;
+      }).join("\n");
     } catch (e) { /* ignore */ }
   }
 
