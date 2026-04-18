@@ -28,7 +28,8 @@ init: ## Initialise Terraform (only needed once)
 	cd $(TERRAFORM_DIR) && tflocal init
 
 deploy: ## Deploy the full app to LocalStack via Terraform
-	cd $(TERRAFORM_DIR) && tflocal init && tflocal apply -auto-approve
+	@[ -d $(TERRAFORM_DIR)/.terraform ] || (cd $(TERRAFORM_DIR) && tflocal init)
+	cd $(TERRAFORM_DIR) && tflocal apply -auto-approve
 
 destroy: ## Tear down all deployed resources
 	cd $(TERRAFORM_DIR) && tflocal destroy -auto-approve
