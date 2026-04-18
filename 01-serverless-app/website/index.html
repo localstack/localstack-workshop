@@ -598,7 +598,7 @@
         return [
           `<tr class="data-row${isExpanded ? " expanded" : ""}" id="row-${o.order_id}" data-id="${o.order_id}" onclick="toggleDetail('${o.order_id}')">
             <td><span class="expand-icon">›</span></td>
-            <td class="order-id" title="${o.order_id}">${o.order_id.slice(0, 8)}…</td>
+            <td class="order-id" title="${o.order_id}">${o.order_id}</td>
             <td>${escHtml(o.item)}</td>
             <td>${o.quantity}</td>
             <td class="timestamp">${fmt(o.created_at)}</td>
@@ -664,7 +664,11 @@
       label.textContent    = active ? "On" : "Off";
       label.className      = "chaos-status " + (active ? "on" : "off");
       list.style.display   = active ? "block" : "none";
-      if (active) list.textContent = JSON.stringify(faults, null, 2);
+      if (active) list.innerHTML = faults.map(f => {
+        const err = f.error?.code || f.error || "";
+        const short = err.replace(/Exception$/, "").replace(/([A-Z])/g, " $1").trim();
+        return `<span title="${err}">${f.service} / ${f.operation}\n⚡ ${short}</span>`;
+      }).join("\n\n");
     } catch (e) { /* ignore */ }
   }
 

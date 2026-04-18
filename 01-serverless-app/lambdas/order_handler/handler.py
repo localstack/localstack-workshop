@@ -69,7 +69,7 @@ def list_orders():
 
 def create_order(event):
     body = json.loads(event.get("body") or "{}")
-    order_id = str(uuid.uuid4())
+    order_id = uuid.uuid4().hex[:12]
 
     order = {
         "order_id": order_id,
