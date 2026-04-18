@@ -24,8 +24,56 @@
     header h1 { font-size: 1.2rem; font-weight: 600; }
     header span { font-size: 0.85rem; color: #aaa; margin-left: auto; }
 
-    main { max-width: 1000px; margin: 2rem auto; padding: 0 1.5rem; }
+    /* ── Three-column layout ── */
+    .page-layout {
+      max-width: 1280px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      display: grid;
+      grid-template-columns: 160px 1fr 260px;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    @media (max-width: 960px) {
+      .page-layout { grid-template-columns: 1fr 240px; }
+      .left-nav { display: none; }
+    }
+    @media (max-width: 680px) {
+      .page-layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+    }
 
+    /* ── Left nav ── */
+    .left-nav {
+      position: sticky;
+      top: 1.5rem;
+    }
+    .nav-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #bbb;
+      padding: 0 0.5rem 0.5rem;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: #555;
+      user-select: none;
+      transition: background 0.1s, color 0.1s;
+      margin-bottom: 0.15rem;
+    }
+    .nav-item:hover { background: #ebebeb; color: #1a1a1a; }
+    .nav-item.active { background: #e8412a; color: #fff; font-weight: 600; }
+    .nav-item .nav-icon { font-size: 1rem; }
+
+    /* ── Cards ── */
     .card {
       background: #fff;
       border-radius: 8px;
@@ -33,50 +81,135 @@
       padding: 1.5rem;
       margin-bottom: 1.5rem;
     }
-    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #444; text-transform: uppercase; letter-spacing: 0.05em; }
+    .card:last-child { margin-bottom: 0; }
+    .card h2 {
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
 
+    /* ── Sections ── */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── About page ── */
+    .about-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.25rem;
+    }
+    .info-section h3 {
+      font-size: 0.75rem; font-weight: 700; color: #1a1a2e;
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.6rem;
+    }
+    .info-section p, .info-section li { font-size: 0.84rem; color: #555; line-height: 1.6; }
+    .info-section ul { padding-left: 1.1rem; }
+    .info-section li { margin-bottom: 0.3rem; }
+    .svc {
+      display: inline-block;
+      background: #eef2ff; color: #3730a3;
+      border-radius: 4px; padding: 0.05rem 0.4rem;
+      font-size: 0.7rem; font-weight: 700;
+      margin: 0.1rem; font-family: monospace;
+    }
+    .arch-diagram {
+      background: #f8f9ff;
+      border: 1px solid #e0e8ff;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      font-size: 0.78rem;
+      font-family: monospace;
+      color: #444;
+      line-height: 1.9;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      position: sticky;
+      top: 1.5rem;
+    }
+    .sidebar .card { margin-bottom: 1rem; padding: 1.1rem 1.2rem; }
+    .sidebar .card h2 { margin-bottom: 0.75rem; }
+    .sidebar-hint { font-size: 0.76rem; color: #999; line-height: 1.5; margin-top: 0.6rem; }
+    .sidebar-hint code { font-size: 0.72rem; background: #f0f0f0; padding: 0.05rem 0.3rem; border-radius: 3px; }
+
+    /* ── Chaos toggle ── */
+    .chaos-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    .chaos-status { font-size: 0.875rem; font-weight: 600; }
+    .chaos-status.on  { color: #c0392b; }
+    .chaos-status.off { color: #888; }
+
+    .toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: #ccc; border-radius: 22px; cursor: pointer; transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: ""; position: absolute;
+      width: 16px; height: 16px; left: 3px; top: 3px;
+      background: #fff; border-radius: 50%; transition: transform 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: #e8412a; }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+    .fault-list {
+      margin-top: 0.6rem;
+      background: #fdf3f2; border: 1px solid #f5c6c2;
+      border-radius: 6px; padding: 0.5rem 0.65rem;
+      font-size: 0.7rem; font-family: monospace; color: #922;
+      white-space: pre-wrap; word-break: break-all;
+    }
+
+    /* ── DLQ card ── */
+    .dlq-row { display: flex; align-items: center; justify-content: space-between; }
+    .dlq-label {
+      display: flex; align-items: center; gap: 0.4rem;
+      font-size: 0.875rem; font-weight: 500; color: #444;
+      cursor: pointer; user-select: none;
+    }
+    .dlq-label input { cursor: pointer; }
+    #dlq-status { font-size: 0.75rem; color: #1a7a2a; font-weight: 600; display: none; }
+    #dlq-status.active { display: block; margin-top: 0.4rem; }
+
+    /* ── API card ── */
+    #api-url-display {
+      font-family: monospace; font-size: 0.7rem; color: #555;
+      word-break: break-all; line-height: 1.5;
+    }
+
+    /* ── Order form ── */
     form { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
     label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.875rem; color: #555; }
     input[type="text"], input[type="number"] {
-      padding: 0.5rem 0.75rem;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      width: 200px;
+      padding: 0.5rem 0.75rem; border: 1px solid #ddd;
+      border-radius: 6px; font-size: 0.9rem; width: 200px;
     }
     input[type="number"] { width: 80px; }
     button[type="submit"] {
-      padding: 0.5rem 1.25rem;
-      background: #e8412a;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      cursor: pointer;
-      font-weight: 500;
+      padding: 0.5rem 1.25rem; background: #e8412a; color: #fff;
+      border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; font-weight: 500;
     }
     button[type="submit"]:hover { background: #c73520; }
     button[type="submit"]:disabled { background: #ccc; cursor: not-allowed; }
-
     .flash {
-      padding: 0.6rem 1rem;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      margin-top: 0.75rem;
-      display: none;
+      padding: 0.6rem 1rem; border-radius: 6px;
+      font-size: 0.875rem; margin-top: 0.75rem; display: none;
     }
     .flash.success { background: #e6f4ea; color: #1e7e34; display: block; }
     .flash.error   { background: #fde8e8; color: #c0392b; display: block; }
 
+    /* ── Orders table ── */
     .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
     .table-header-right { display: flex; align-items: center; gap: 0.75rem; }
     .refresh-btn {
-      padding: 0.3rem 0.9rem;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      background: #fff;
-      cursor: pointer;
-      font-size: 0.85rem;
+      padding: 0.3rem 0.9rem; border: 1px solid #ddd;
+      border-radius: 6px; background: #fff; cursor: pointer; font-size: 0.85rem;
     }
     .refresh-btn:hover { background: #f5f5f5; }
     #refresh-indicator { font-size: 0.78rem; color: #aaa; display: none; }
@@ -96,14 +229,9 @@
     tr.data-row.expanded .expand-icon { transform: rotate(90deg); }
 
     .badge {
-      display: inline-block;
-      padding: 0.2rem 0.6rem;
-      border-radius: 99px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      white-space: nowrap;
+      display: inline-block; padding: 0.2rem 0.6rem;
+      border-radius: 99px; font-size: 0.75rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
     }
     .badge.pending            { background: #fff3cd; color: #856404; }
     .badge.validating         { background: #cfe2ff; color: #084298; }
@@ -111,18 +239,8 @@
     .badge.fulfilled          { background: #d1f5d3; color: #1a7a2a; }
     .badge.failed             { background: #fde8e8; color: #c0392b; }
 
-    .pipeline {
-      display: flex;
-      align-items: center;
-      font-size: 0.7rem;
-      white-space: nowrap;
-    }
-    .pipeline-step {
-      padding: 0.15rem 0.5rem;
-      border-radius: 3px;
-      color: #999;
-      background: #f0f0f0;
-    }
+    .pipeline { display: flex; align-items: center; font-size: 0.7rem; white-space: nowrap; }
+    .pipeline-step { padding: 0.15rem 0.5rem; border-radius: 3px; color: #999; background: #f0f0f0; }
     .pipeline-step.done   { background: #d1f5d3; color: #1a7a2a; }
     .pipeline-step.active { background: #cfe2ff; color: #084298; font-weight: 600; }
     .pipeline-step.failed { background: #fde8e8; color: #c0392b; }
@@ -131,101 +249,16 @@
     .detail-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 0.5rem 1.5rem;
-      font-size: 0.82rem;
+      gap: 0.5rem 1.5rem; font-size: 0.82rem;
     }
     .detail-item { display: flex; flex-direction: column; gap: 0.1rem; }
     .detail-label { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
     .detail-value { font-family: monospace; color: #333; word-break: break-all; }
     .detail-value.ts { font-family: inherit; color: #555; }
 
-    .order-id { font-family: monospace; font-size: 0.78rem; color: #888; }
+    .order-id  { font-family: monospace; font-size: 0.78rem; color: #888; }
     .timestamp { font-size: 0.78rem; color: #999; white-space: nowrap; }
-    .empty { text-align: center; color: #aaa; padding: 2rem; }
-
-    .dlq-label {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      font-size: 0.82rem;
-      color: #555;
-      cursor: pointer;
-      user-select: none;
-    }
-    .dlq-label input { cursor: pointer; }
-    #dlq-indicator { font-size: 0.78rem; color: #1a7a2a; display: none; }
-    #dlq-indicator.active { display: inline; }
-
-    #api-bar { font-size: 0.78rem; color: #aaa; margin-bottom: 1rem; }
-    #api-bar code { background: #f0f0f0; padding: 0.1rem 0.4rem; border-radius: 4px; }
-
-    details.info-panel {
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-      margin-bottom: 1.5rem;
-      overflow: hidden;
-    }
-    details.info-panel summary {
-      padding: 0.9rem 1.5rem;
-      cursor: pointer;
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #444;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      list-style: none;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      user-select: none;
-    }
-    details.info-panel summary::-webkit-details-marker { display: none; }
-    details.info-panel summary::before {
-      content: "›";
-      font-size: 1rem;
-      color: #aaa;
-      transition: transform 0.15s;
-      display: inline-block;
-    }
-    details.info-panel[open] summary::before { transform: rotate(90deg); }
-    .info-body {
-      padding: 0 1.5rem 1.5rem;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1.25rem;
-      border-top: 1px solid #f0f0f0;
-      padding-top: 1.25rem;
-    }
-    .info-section h3 { font-size: 0.8rem; font-weight: 700; color: #1a1a2e; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
-    .info-section p, .info-section li { font-size: 0.82rem; color: #555; line-height: 1.55; }
-    .info-section ul { padding-left: 1.1rem; }
-    .info-section li { margin-bottom: 0.2rem; }
-    .service-tag {
-      display: inline-block;
-      background: #eef2ff;
-      color: #3730a3;
-      border-radius: 4px;
-      padding: 0.1rem 0.45rem;
-      font-size: 0.72rem;
-      font-weight: 600;
-      margin: 0.15rem 0.1rem;
-      font-family: monospace;
-    }
-
-    #chaos-banner {
-      display: none;
-      background: #fff3cd;
-      border: 1px solid #ffc107;
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      margin-bottom: 1.5rem;
-      font-size: 0.875rem;
-      color: #856404;
-    }
-    #chaos-banner.active { display: block; }
-    #chaos-banner strong { font-weight: 700; }
-    #chaos-faults { font-family: monospace; font-size: 0.8rem; margin-top: 0.4rem; white-space: pre-wrap; }
+    .empty     { text-align: center; color: #aaa; padding: 2rem; }
   </style>
 </head>
 <body>
@@ -235,117 +268,242 @@
   <span>LocalStack Workshop</span>
 </header>
 
-<main>
-  <p id="api-bar">API endpoint: <code id="api-url"></code></p>
+<div class="page-layout">
 
-  <details class="info-panel">
-    <summary>About this demo</summary>
-    <div class="info-body">
-      <div class="info-section">
-        <h3>What is this?</h3>
-        <p>A fully local serverless order-processing pipeline running on
-        <strong>LocalStack</strong> — an AWS emulator that lets you develop
-        and test cloud applications on your laptop without touching a real AWS account.</p>
-        <p style="margin-top:0.5rem;">Everything here — Lambda, API Gateway, DynamoDB,
-        SQS, Step Functions, S3 — runs locally inside a single Docker container.</p>
+  <!-- ── Left nav ── -->
+  <nav class="left-nav">
+    <div class="nav-label">Navigation</div>
+    <div class="nav-item active" onclick="showSection('orders')" id="nav-orders">
+      <span class="nav-icon">📦</span> Orders
+    </div>
+    <div class="nav-item" onclick="showSection('about')" id="nav-about">
+      <span class="nav-icon">ℹ️</span> About
+    </div>
+  </nav>
+
+  <!-- ── Main content ── -->
+  <main>
+
+    <!-- Orders section -->
+    <div class="section active" id="section-orders">
+      <div class="card">
+        <h2>New Order</h2>
+        <form id="order-form">
+          <label>
+            Item
+            <input type="text" id="item" placeholder="e.g. LocalStack T-Shirt" required />
+          </label>
+          <label>
+            Quantity
+            <input type="number" id="quantity" value="1" min="1" required />
+          </label>
+          <button type="submit" id="submit-btn">Place Order</button>
+        </form>
+        <div class="flash" id="flash"></div>
       </div>
-      <div class="info-section">
-        <h3>Architecture</h3>
-        <ul>
-          <li><span class="service-tag">API Gateway</span> exposes <code style="font-size:0.78rem">POST /orders</code> and <code style="font-size:0.78rem">GET /orders</code></li>
-          <li><span class="service-tag">Lambda</span> <em>order-handler</em> writes the order to DynamoDB and enqueues it on SQS</li>
-          <li><span class="service-tag">SQS</span> <em>orders-queue</em> buffers orders; failed messages go to a <em>orders-dlq</em></li>
-          <li><span class="service-tag">Lambda</span> <em>order-processor</em> starts a Step Functions execution per order</li>
-          <li><span class="service-tag">Step Functions</span> orchestrates: Validate → Wait → Payment → Wait → Fulfill (with error catch)</li>
-          <li><span class="service-tag">DynamoDB</span> tracks order status and step timestamps</li>
-          <li><span class="service-tag">S3</span> stores a receipt JSON when an order is fulfilled</li>
-        </ul>
-      </div>
-      <div class="info-section">
-        <h3>Chaos Engineering</h3>
-        <p>Use <strong>make inject-fault</strong> to enable a
-        <code style="font-size:0.78rem">ProvisionedThroughputExceededException</code>
-        on every DynamoDB <code style="font-size:0.78rem">UpdateItem</code> call.
-        This simulates a DynamoDB throttling incident:</p>
-        <ul>
-          <li>New orders get stuck in <em>pending</em> — the processor Lambda throws before starting the state machine</li>
-          <li>SQS retries the message 3 times, then routes it to the <strong>DLQ</strong></li>
-          <li>Run <strong>make remove-fault</strong> to restore normal operation</li>
-          <li>Enable <strong>Auto-resume DLQ</strong> above to automatically replay stranded messages once the fault is cleared</li>
-        </ul>
-      </div>
-      <div class="info-section">
-        <h3>Try it out</h3>
-        <ul>
-          <li>Place an order and watch it move through the pipeline in real time</li>
-          <li>Inject a fault, place more orders, observe them pile up in <em>pending</em></li>
-          <li>Check the chaos banner — it reflects the live fault list from LocalStack</li>
-          <li>Remove the fault and tick <em>Auto-resume DLQ</em> — orders recover automatically</li>
-          <li>Expand any row to see per-step timestamps and details</li>
-        </ul>
+
+      <div class="card">
+        <div class="table-header">
+          <h2>Orders</h2>
+          <div class="table-header-right">
+            <span id="refresh-indicator">↻ auto-refreshing…</span>
+            <button class="refresh-btn" onclick="loadOrders()">↻ Refresh</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Order ID</th>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Created</th>
+              <th>Status</th>
+              <th>Pipeline</th>
+            </tr>
+          </thead>
+          <tbody id="orders-body">
+            <tr><td colspan="7" class="empty">Loading…</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
-  </details>
 
-  <div id="chaos-banner">
-    <strong>⚠ Chaos mode active</strong> — fault injections are enabled, orders may fail or get stuck.
-    <div id="chaos-faults"></div>
-  </div>
+    <!-- About section -->
+    <div class="section" id="section-about">
+      <div class="card">
+        <h2>What is this?</h2>
+        <p style="font-size:0.875rem;color:#555;line-height:1.65;margin-bottom:1rem;">
+          A fully local serverless order-processing pipeline running on
+          <strong>LocalStack</strong> — an AWS cloud emulator that lets you develop
+          and test cloud-native applications on your laptop without touching a
+          real AWS account. Every service runs inside a single Docker container.
+        </p>
+        <div class="arch-diagram">Browser → API Gateway → Lambda (order-handler)
+                                      ↓                  ↓
+                                 DynamoDB             SQS queue
+                                                         ↓
+                                               Lambda (order-processor)
+                                                         ↓
+                                               Step Functions state machine
+                                              ┌──────────┬──────────┐
+                                           Validate  Payment   Fulfill
+                                              ↓         ↓         ↓
+                                          DynamoDB  DynamoDB    S3
+                                         (status)  (status)  (receipt)</div>
+      </div>
 
-  <div class="card">
-    <h2>New Order</h2>
-    <form id="order-form">
-      <label>
-        Item
-        <input type="text" id="item" placeholder="e.g. LocalStack T-Shirt" required />
-      </label>
-      <label>
-        Quantity
-        <input type="number" id="quantity" value="1" min="1" required />
-      </label>
-      <button type="submit" id="submit-btn">Place Order</button>
-    </form>
-    <div class="flash" id="flash"></div>
-  </div>
+      <div class="card">
+        <h2>Architecture</h2>
+        <div class="about-grid">
+          <div class="info-section">
+            <h3>API Layer</h3>
+            <ul>
+              <li><span class="svc">API Gateway</span> custom ID <code style="font-size:0.78rem">workshop</code> — exposes <code style="font-size:0.78rem">POST /orders</code>, <code style="font-size:0.78rem">GET /orders</code>, <code style="font-size:0.78rem">POST /orders/replay</code></li>
+              <li><span class="svc">Lambda</span> <em>order-handler</em> validates input, persists to DynamoDB, enqueues on SQS</li>
+            </ul>
+          </div>
+          <div class="info-section">
+            <h3>Processing</h3>
+            <ul>
+              <li><span class="svc">SQS</span> <em>orders-queue</em> decouples ingestion from processing; <em>orders-dlq</em> catches failures after 3 retries</li>
+              <li><span class="svc">Lambda</span> <em>order-processor</em> consumes SQS and starts a Step Functions execution per order</li>
+              <li><span class="svc">Step Functions</span> orchestrates: <em>Validate → Wait(3s) → Payment → Wait(3s) → Fulfill</em>, with error catch on every step</li>
+            </ul>
+          </div>
+          <div class="info-section">
+            <h3>Storage</h3>
+            <ul>
+              <li><span class="svc">DynamoDB</span> <em>orders</em> table — tracks order status and per-step timestamps (<code style="font-size:0.78rem">validating_at</code>, <code style="font-size:0.78rem">payment_at</code>, …)</li>
+              <li><span class="svc">S3</span> <em>order-receipts</em> bucket — stores a receipt JSON at <code style="font-size:0.78rem">receipts/&lt;order_id&gt;.json</code> on fulfillment</li>
+            </ul>
+          </div>
+        </div>
+      </div>
 
-  <div class="card">
-    <div class="table-header">
-      <h2>Orders</h2>
-      <div class="table-header-right">
-        <span id="dlq-indicator">↺ replayed from DLQ</span>
-        <label class="dlq-label">
-          <input type="checkbox" id="auto-resume-dlq"> Auto-resume DLQ
+      <div class="card">
+        <h2>Chaos Engineering</h2>
+        <div class="about-grid">
+          <div class="info-section">
+            <h3>What we inject</h3>
+            <p>Toggle <strong>Chaos Mode</strong> in the sidebar to inject a
+            <code style="font-size:0.78rem">ProvisionedThroughputExceededException</code>
+            on every DynamoDB <code style="font-size:0.78rem">UpdateItem</code> call via
+            the LocalStack Chaos API (<code style="font-size:0.78rem">POST /_localstack/chaos/faults</code>).</p>
+          </div>
+          <div class="info-section">
+            <h3>What breaks</h3>
+            <ul>
+              <li>The <em>order-processor</em> Lambda tries to update order status before starting the state machine</li>
+              <li>DynamoDB throws → Lambda fails → SQS retries the message 3×</li>
+              <li>After 3 failures the message is routed to the <strong>DLQ</strong></li>
+              <li>Order stays stuck in <em>pending</em> indefinitely</li>
+            </ul>
+          </div>
+          <div class="info-section">
+            <h3>Recovery</h3>
+            <ul>
+              <li>Disable chaos mode to restore normal DynamoDB behaviour</li>
+              <li>Enable <strong>Auto-resume DLQ</strong> — the UI polls <code style="font-size:0.78rem">POST /orders/replay</code> every 5 s and re-queues stranded messages</li>
+              <li>Orders resume processing through the full pipeline</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Try it out</h2>
+        <div class="about-grid">
+          <div class="info-section">
+            <h3>Happy path</h3>
+            <ul>
+              <li>Go to <strong>Orders</strong> and place an order</li>
+              <li>Watch the status badge and pipeline bar update in real time</li>
+              <li>Expand the row to see per-step timestamps</li>
+            </ul>
+          </div>
+          <div class="info-section">
+            <h3>Chaos scenario</h3>
+            <ul>
+              <li>Enable <strong>Chaos Mode</strong> in the sidebar</li>
+              <li>Place one or more orders — they pile up in <em>pending</em></li>
+              <li>Disable chaos, tick <strong>Auto-resume DLQ</strong></li>
+              <li>Watch orders automatically recover and fulfill</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Right sidebar ── -->
+  <aside class="sidebar">
+
+    <div class="card">
+      <h2>Chaos Mode</h2>
+      <div class="chaos-row">
+        <span class="chaos-status off" id="chaos-status-label">Off</span>
+        <label class="toggle-switch" title="Toggle DynamoDB fault injection">
+          <input type="checkbox" id="chaos-toggle" />
+          <span class="toggle-slider"></span>
         </label>
-        <span id="refresh-indicator">↻ auto-refreshing…</span>
-        <button class="refresh-btn" onclick="loadOrders()">↻ Refresh</button>
       </div>
+      <div class="fault-list" id="fault-list" style="display:none"></div>
+      <p class="sidebar-hint">
+        Injects <code>ProvisionedThroughputExceededException</code> on
+        DynamoDB <code>UpdateItem</code> — simulates a throttling incident.
+      </p>
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th></th>
-          <th>Order ID</th>
-          <th>Item</th>
-          <th>Qty</th>
-          <th>Created</th>
-          <th>Status</th>
-          <th>Pipeline</th>
-        </tr>
-      </thead>
-      <tbody id="orders-body">
-        <tr><td colspan="7" class="empty">Loading…</td></tr>
-      </tbody>
-    </table>
-  </div>
-</main>
+
+    <div class="card">
+      <h2>DLQ Recovery</h2>
+      <div class="dlq-row">
+        <label class="dlq-label">
+          <input type="checkbox" id="auto-resume-dlq" />
+          Auto-resume
+        </label>
+      </div>
+      <div id="dlq-status"></div>
+      <p class="sidebar-hint">
+        Polls <code>POST /orders/replay</code> every 5 s and re-queues
+        stranded messages from the DLQ.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>API Endpoint</h2>
+      <span id="api-url-display"></span>
+    </div>
+
+  </aside>
+
+</div><!-- end .page-layout -->
 
 <script>
   const API = window.location.origin + "/restapis/workshop/local/_user_request_";
-  document.getElementById("api-url").textContent = API;
+  document.getElementById("api-url-display").textContent = API;
 
-  const STEPS = ["pending", "validating", "payment_processing", "fulfilled"];
+  const CHAOS_FAULT = [{
+    service: "dynamodb",
+    operation: "UpdateItem",
+    error: { code: "ProvisionedThroughputExceededException", statusCode: 400 }
+  }];
+
+  const STEPS    = ["pending", "validating", "payment_processing", "fulfilled"];
   const TERMINAL = new Set(["fulfilled", "failed"]);
   let refreshTimer = null;
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+
+  function showSection(name) {
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+    document.getElementById("section-" + name).classList.add("active");
+    document.getElementById("nav-" + name).classList.add("active");
+  }
+
+  // ── Pipeline helpers ──────────────────────────────────────────────────────
 
   function stepClass(step, current) {
     if (current === "failed") return step === "pending" ? "done" : "failed";
@@ -368,13 +526,17 @@
     return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   }
 
+  function escHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
   function detailRow(o) {
     const steps = [
-      { label: "Pending",          ts: o.created_at,    desc: "Order received, queued for processing" },
-      { label: "Validating",       ts: o.validating_at, desc: "Checking order details" },
-      { label: "Payment",          ts: o.payment_at,    desc: "Processing payment" },
-      { label: "Fulfilled",        ts: o.fulfilled_at,  desc: "Receipt stored in S3" },
-      { label: "Failed",           ts: o.failed_at,     desc: "Processing error — check DLQ" },
+      { label: "Pending",    ts: o.created_at,    desc: "Order received, queued for processing" },
+      { label: "Validating", ts: o.validating_at, desc: "Checking order details" },
+      { label: "Payment",    ts: o.payment_at,    desc: "Processing payment" },
+      { label: "Fulfilled",  ts: o.fulfilled_at,  desc: "Receipt stored in S3" },
+      { label: "Failed",     ts: o.failed_at,     desc: "Processing error — message routed to DLQ" },
     ].filter(s => s.ts);
 
     const stepHtml = steps.map(s => `
@@ -398,11 +560,11 @@
   }
 
   function toggleDetail(id) {
-    const dataRow   = document.getElementById(`row-${id}`);
-    const detailRow = document.getElementById(`detail-${id}`);
-    dataRow.classList.toggle("expanded");
-    detailRow.classList.toggle("visible");
+    document.getElementById(`row-${id}`).classList.toggle("expanded");
+    document.getElementById(`detail-${id}`).classList.toggle("visible");
   }
+
+  // ── Orders ────────────────────────────────────────────────────────────────
 
   function setAutoRefresh(active) {
     document.getElementById("refresh-indicator").className = active ? "active" : "";
@@ -426,10 +588,8 @@
         return;
       }
 
-      // Remember which rows are currently expanded
       const expanded = new Set(
-        [...document.querySelectorAll("tr.data-row.expanded")]
-          .map(r => r.dataset.id)
+        [...document.querySelectorAll("tr.data-row.expanded")].map(r => r.dataset.id)
       );
 
       const sorted = [...orders].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
@@ -451,8 +611,7 @@
         ];
       }).join("");
 
-      const anyActive = orders.some(o => !TERMINAL.has(o.status));
-      setAutoRefresh(anyActive);
+      setAutoRefresh(orders.some(o => !TERMINAL.has(o.status)));
     } catch (e) {
       document.getElementById("orders-body").innerHTML =
         '<tr><td colspan="7" class="empty">Error loading orders — is LocalStack running?</td></tr>';
@@ -462,17 +621,16 @@
 
   document.getElementById("order-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const btn = document.getElementById("submit-btn");
+    const btn   = document.getElementById("submit-btn");
     const flash = document.getElementById("flash");
     btn.disabled = true;
     flash.className = "flash";
-
     try {
       const res = await fetch(`${API}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          item: document.getElementById("item").value,
+          item:     document.getElementById("item").value,
           quantity: parseInt(document.getElementById("quantity").value),
         }),
       });
@@ -490,35 +648,53 @@
     }
   });
 
-  function escHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  }
+  // ── Chaos mode ────────────────────────────────────────────────────────────
 
   async function checkChaos() {
     try {
-      const res = await fetch(`${window.location.origin}/_localstack/chaos/faults`);
+      const res    = await fetch(`${window.location.origin}/_localstack/chaos/faults`);
       const faults = await res.json();
-      const banner = document.getElementById("chaos-banner");
-      if (Array.isArray(faults) && faults.length > 0) {
-        banner.classList.add("active");
-        document.getElementById("chaos-faults").textContent = JSON.stringify(faults, null, 2);
-      } else {
-        banner.classList.remove("active");
-      }
-    } catch (e) { /* LocalStack not reachable, ignore */ }
+      const active = Array.isArray(faults) && faults.length > 0;
+
+      const toggle = document.getElementById("chaos-toggle");
+      const label  = document.getElementById("chaos-status-label");
+      const list   = document.getElementById("fault-list");
+
+      toggle.checked       = active;
+      label.textContent    = active ? "On" : "Off";
+      label.className      = "chaos-status " + (active ? "on" : "off");
+      list.style.display   = active ? "block" : "none";
+      if (active) list.textContent = JSON.stringify(faults, null, 2);
+    } catch (e) { /* ignore */ }
   }
+
+  document.getElementById("chaos-toggle").addEventListener("change", async function () {
+    const payload = this.checked ? CHAOS_FAULT : [];
+    try {
+      await fetch(`${window.location.origin}/_localstack/chaos/faults`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      await checkChaos();
+    } catch (e) {
+      this.checked = !this.checked;
+    }
+  });
+
+  // ── DLQ replay ────────────────────────────────────────────────────────────
 
   let dlqTimer = null;
 
   async function replayDlq() {
     try {
-      const res = await fetch(`${API}/replay`, { method: "POST" });
+      const res  = await fetch(`${API}/replay`, { method: "POST" });
       const data = await res.json();
+      const status = document.getElementById("dlq-status");
       if (data.replayed > 0) {
-        const ind = document.getElementById("dlq-indicator");
-        ind.textContent = `↺ replayed ${data.replayed} from DLQ`;
-        ind.classList.add("active");
-        setTimeout(() => ind.classList.remove("active"), 4000);
+        status.textContent = `↺ replayed ${data.replayed} message${data.replayed > 1 ? "s" : ""}`;
+        status.classList.add("active");
+        setTimeout(() => status.classList.remove("active"), 4000);
         loadOrders();
       }
     } catch (e) { /* ignore */ }
@@ -533,6 +709,8 @@
       dlqTimer = null;
     }
   });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
 
   checkChaos();
   setInterval(checkChaos, 5000);
