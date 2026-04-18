@@ -33,4 +33,4 @@ def api_endpoint():
         ["tflocal", "output", "-json", "api_endpoint"],
         cwd="../01-serverless-app/terraform",
     )
-    return json.loads(result)["value"]
+    return json.loads(result)
