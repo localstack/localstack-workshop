@@ -349,7 +349,7 @@ resource "aws_sfn_state_machine" "order_processing" {
       }
       FulfillOrder = {
         Type     = "Task"
-        Resource = "arn:aws:states:::ecs:runTask.sync:2"
+        Resource = "arn:aws:states:::ecs:runTask.sync"
         Parameters = {
           LaunchType     = "FARGATE"
           Cluster        = aws_ecs_cluster.main.arn

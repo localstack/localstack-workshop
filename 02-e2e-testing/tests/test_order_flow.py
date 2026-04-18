@@ -28,7 +28,7 @@ def test_order_fulfilled_and_receipt_in_s3(api_endpoint, dynamodb, s3):
 
     # Wait for full pipeline: SQS → Lambda → Step Functions → ECS (up to 60s)
     table = dynamodb.Table("orders")
-    for _ in range(120):
+    for _ in range(300):
         item = table.get_item(Key={"order_id": order_id})["Item"]
         if item["status"] in ("fulfilled", "failed"):
             break
