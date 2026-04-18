@@ -2,14 +2,16 @@ FROM mcr.microsoft.com/devcontainers/universal
 
 RUN sudo apt-get update && sudo apt-get install -y curl jq
 
-# Install LocalStack CLI and AWS/Terraform local wrappers
-RUN pip install localstack awscli-local terraform-local pytest requests
+# Install LocalStack CLI, AWS CLI, and local wrappers
+RUN pip install localstack awscli awscli-local terraform-local pytest requests
 
 # default environment variables
 ENV DEBUG=1
 ENV OVERRIDE_IN_DOCKER=0
 ENV EXTRA_CORS_ALLOWED_ORIGINS='*'
 ENV DISABLE_CUSTOM_CORS_APIGATEWAY=1
+ENV LOCALSTACK_APPINSPECTOR_ENABLE=1
+ENV LOCALSTACK_APPINSPECTOR_DEV_ENABLE=1
 
 # Workshop token URL — set by organizer before each event.
 # The setup script fetches the actual token from this endpoint.

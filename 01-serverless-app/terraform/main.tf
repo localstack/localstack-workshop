@@ -240,7 +240,7 @@ locals {
 }
 
 resource "aws_s3_bucket" "website" {
-  bucket = "order-workshop-ui"
+  bucket = "orders-ui"
 }
 
 resource "aws_s3_bucket_public_access_block" "website" {
@@ -282,5 +282,5 @@ output "api_endpoint" {
 }
 
 output "website_url" {
-  value = "http://localhost:4566/order-workshop-ui/index.html"
+  value = "http://localhost:4566/orders-ui/index.html"
 }

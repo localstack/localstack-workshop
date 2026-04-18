@@ -93,7 +93,7 @@ awslocal s3 ls s3://order-receipts/
 
 ```bash
 echo "Website: $(tflocal output -raw website_url)"
-# Open http://localhost:4566/order-workshop-ui/index.html in your browser
+# Open http://localhost:4566/orders-ui/index.html in your browser
 ```
 
 ---
