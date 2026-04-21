@@ -1,2 +1,0 @@
-#set($resObj=$utils.rds.toJsonObject($ctx.result))
-$utils.toJson($resObj[0])

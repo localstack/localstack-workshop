@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := help
-TERRAFORM_DIR := 01-serverless-app/terraform
+TERRAFORM_DIR  := 01-serverless-app/terraform
+ECR_REGISTRY   := 000000000000.dkr.ecr.us-east-1.localhost.localstack.cloud:4566
+FULFILLMENT_DIR := 01-serverless-app/services/fulfillment
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage: make \033[36m<target>\033[0m\n\nTargets:\n"} \
@@ -27,9 +29,16 @@ setup: ## Fetch auth token and start LocalStack (runs 00-setup/setup.sh)
 init: ## Initialise Terraform (only needed once)
 	cd $(TERRAFORM_DIR) && tflocal init
 
-deploy: ## Deploy the full app to LocalStack via Terraform
+build: ## Build and push the fulfillment service image to local ECR
+	awslocal ecr get-login-password | \
+	  docker login --username AWS --password-stdin $(ECR_REGISTRY)
+	docker build -t $(ECR_REGISTRY)/fulfillment:latest $(FULFILLMENT_DIR)
+	docker push $(ECR_REGISTRY)/fulfillment:latest
+
+deploy: ## Deploy the full app to LocalStack via Terraform, then build the fulfillment image
 	@[ -d $(TERRAFORM_DIR)/.terraform ] || (cd $(TERRAFORM_DIR) && tflocal init)
 	cd $(TERRAFORM_DIR) && tflocal apply -auto-approve
+	$(MAKE) build
 
 destroy: ## Tear down all deployed resources
 	cd $(TERRAFORM_DIR) && tflocal destroy -auto-approve
@@ -72,11 +81,36 @@ replay-dlq: ## Replay messages from the DLQ back to the main queue
 	  --queue-url http://localhost:4566/000000000000/orders-dlq \
 	  --max-number-of-messages 10 | python3 04-chaos-engineering/scripts/replay_dlq.py
 
+# ── IAM enforcement ───────────────────────────────────────────────────────────
+
+iam-enforce: ## Enable IAM policy enforcement — order creation now fails (missing PutItem)
+	curl -s -X POST http://localhost:4566/_aws/iam/config \
+	  -H "Content-Type: application/json" \
+	  -d '{"state":"ENFORCED"}' | python3 -m json.tool
+
+iam-off: ## Disable IAM enforcement (permissive mode, default)
+	curl -s -X POST http://localhost:4566/_aws/iam/config \
+	  -H "Content-Type: application/json" \
+	  -d '{"state":"ENGINE_ONLY"}' | python3 -m json.tool
+
+iam-fix: ## Grant missing dynamodb:PutItem to the Lambda role — fixes order creation
+	awslocal iam put-role-policy \
+	  --role-name lambda-exec-role \
+	  --policy-name order-handler-putitem \
+	  --policy-document file://03-iam-enforcement/policies/lambda-putitem-grant.json
+	@echo "Permission granted — order creation should work now"
+
+iam-status: ## Show current IAM enforcement state and Lambda role policies
+	@echo "=== IAM enforcement ===" && \
+	  curl -s http://localhost:4566/_aws/iam/config | python3 -m json.tool
+	@echo "=== Lambda role policies ===" && \
+	  awslocal iam list-role-policies --role-name lambda-exec-role
+
 # ── Token ─────────────────────────────────────────────────────────────────────
 
 publish-token: ## Upload LOCALSTACK_AUTH_TOKEN to S3 for workshop participants
 	bash scripts/publish-workshop-token.sh
 
-.PHONY: help start stop status logs setup init deploy destroy redeploy outputs \
+.PHONY: help start stop status logs setup init build deploy destroy redeploy outputs \
         test test-fast open-ui api-endpoint inject-fault remove-fault replay-dlq \
-        publish-token
+        iam-enforce iam-off iam-fix iam-status publish-token
