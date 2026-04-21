@@ -820,25 +820,25 @@ flowchart LR
 
   async function checkIAM() {
     try {
-      const res  = await fetch(`${window.location.origin}/_localstack/config`);
+      const res  = await fetch(`${window.location.origin}/_aws/iam/config`);
       const data = await res.json();
-      const on   = !!(data.ENFORCE_IAM && data.ENFORCE_IAM !== "0" && data.ENFORCE_IAM !== false);
+      const on   = data.state === "ENFORCED";
       const toggle = document.getElementById("iam-toggle");
       const label  = document.getElementById("iam-status-label");
       const hint   = document.getElementById("iam-hint");
-      toggle.checked    = on;
-      label.textContent = on ? "On" : "Off";
-      label.className   = "chaos-status " + (on ? "on" : "off");
+      toggle.checked     = on;
+      label.textContent  = on ? "On" : "Off";
+      label.className    = "chaos-status " + (on ? "on" : "off");
       hint.style.display = on ? "block" : "none";
     } catch (_) {}
   }
 
   document.getElementById("iam-toggle").addEventListener("change", async function () {
     try {
-      await fetch(`${window.location.origin}/_localstack/config`, {
+      await fetch(`${window.location.origin}/_aws/iam/config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ENFORCE_IAM: this.checked ? "1" : "0" }),
+        body: JSON.stringify({ state: this.checked ? "ENFORCED" : "ALLOW_ALL" }),
       });
       await checkIAM();
     } catch (e) {

@@ -84,14 +84,14 @@ replay-dlq: ## Replay messages from the DLQ back to the main queue
 # ── IAM enforcement ───────────────────────────────────────────────────────────
 
 iam-enforce: ## Enable IAM policy enforcement — order creation now fails (missing PutItem)
-	curl -s -X POST http://localhost:4566/_localstack/config \
+	curl -s -X POST http://localhost:4566/_aws/iam/config \
 	  -H "Content-Type: application/json" \
-	  -d '{"ENFORCE_IAM": "1"}' | python3 -m json.tool
+	  -d '{"state":"ENFORCED"}' | python3 -m json.tool
 
 iam-off: ## Disable IAM enforcement (permissive mode, default)
-	curl -s -X POST http://localhost:4566/_localstack/config \
+	curl -s -X POST http://localhost:4566/_aws/iam/config \
 	  -H "Content-Type: application/json" \
-	  -d '{"ENFORCE_IAM": "0"}' | python3 -m json.tool
+	  -d '{"state":"ALLOW_ALL"}' | python3 -m json.tool
 
 iam-fix: ## Grant missing dynamodb:PutItem to the Lambda role — fixes order creation
 	awslocal iam put-role-policy \
@@ -102,8 +102,7 @@ iam-fix: ## Grant missing dynamodb:PutItem to the Lambda role — fixes order cr
 
 iam-status: ## Show current IAM enforcement state and Lambda role policies
 	@echo "=== IAM enforcement ===" && \
-	  curl -s http://localhost:4566/_localstack/config | \
-	  python3 -c "import sys,json; c=json.load(sys.stdin); print('ENFORCE_IAM:', c.get('ENFORCE_IAM', False))"
+	  curl -s http://localhost:4566/_aws/iam/config | python3 -m json.tool
 	@echo "=== Lambda role policies ===" && \
 	  awslocal iam list-role-policies --role-name lambda-exec-role
 
