@@ -91,7 +91,7 @@ iam-enforce: ## Enable IAM policy enforcement — order creation now fails (miss
 iam-off: ## Disable IAM enforcement (permissive mode, default)
 	curl -s -X POST http://localhost:4566/_aws/iam/config \
 	  -H "Content-Type: application/json" \
-	  -d '{"state":"ALLOW_ALL"}' | python3 -m json.tool
+	  -d '{"state":"ENGINE_ONLY"}' | python3 -m json.tool
 
 iam-fix: ## Grant missing dynamodb:PutItem to the Lambda role — fixes order creation
 	awslocal iam put-role-policy \

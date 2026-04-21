@@ -838,7 +838,7 @@ flowchart LR
       await fetch(`${window.location.origin}/_aws/iam/config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ state: this.checked ? "ENFORCED" : "ALLOW_ALL" }),
+        body: JSON.stringify({ state: this.checked ? "ENFORCED" : "ENGINE_ONLY" }),
       });
       await checkIAM();
     } catch (e) {
