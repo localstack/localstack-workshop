@@ -201,8 +201,9 @@ resource "aws_iam_role_policy" "lambda_policy" {
     Version = "2012-10-17"
     Statement = [
       {
+        # dynamodb:PutItem intentionally omitted — see 03-iam-enforcement for the IAM demo
         Effect   = "Allow"
-        Action   = ["dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:GetItem", "dynamodb:Scan"]
+        Action   = ["dynamodb:UpdateItem", "dynamodb:GetItem", "dynamodb:Scan"]
         Resource = [aws_dynamodb_table.orders.arn, aws_dynamodb_table.products.arn]
       },
       {

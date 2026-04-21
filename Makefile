@@ -81,6 +81,32 @@ replay-dlq: ## Replay messages from the DLQ back to the main queue
 	  --queue-url http://localhost:4566/000000000000/orders-dlq \
 	  --max-number-of-messages 10 | python3 04-chaos-engineering/scripts/replay_dlq.py
 
+# ── IAM enforcement ───────────────────────────────────────────────────────────
+
+iam-enforce: ## Enable IAM policy enforcement — order creation now fails (missing PutItem)
+	curl -s -X POST http://localhost:4566/_localstack/config \
+	  -H "Content-Type: application/json" \
+	  -d '{"ENFORCE_IAM": "1"}' | python3 -m json.tool
+
+iam-off: ## Disable IAM enforcement (permissive mode, default)
+	curl -s -X POST http://localhost:4566/_localstack/config \
+	  -H "Content-Type: application/json" \
+	  -d '{"ENFORCE_IAM": "0"}' | python3 -m json.tool
+
+iam-fix: ## Grant missing dynamodb:PutItem to the Lambda role — fixes order creation
+	awslocal iam put-role-policy \
+	  --role-name lambda-exec-role \
+	  --policy-name order-handler-putitem \
+	  --policy-document file://03-iam-enforcement/policies/lambda-putitem-grant.json
+	@echo "Permission granted — order creation should work now"
+
+iam-status: ## Show current IAM enforcement state and Lambda role policies
+	@echo "=== IAM enforcement ===" && \
+	  curl -s http://localhost:4566/_localstack/config | \
+	  python3 -c "import sys,json; c=json.load(sys.stdin); print('ENFORCE_IAM:', c.get('ENFORCE_IAM', False))"
+	@echo "=== Lambda role policies ===" && \
+	  awslocal iam list-role-policies --role-name lambda-exec-role
+
 # ── Token ─────────────────────────────────────────────────────────────────────
 
 publish-token: ## Upload LOCALSTACK_AUTH_TOKEN to S3 for workshop participants
@@ -88,4 +114,4 @@ publish-token: ## Upload LOCALSTACK_AUTH_TOKEN to S3 for workshop participants
 
 .PHONY: help start stop status logs setup init build deploy destroy redeploy outputs \
         test test-fast open-ui api-endpoint inject-fault remove-fault replay-dlq \
-        publish-token
+        iam-enforce iam-off iam-fix iam-status publish-token

@@ -258,6 +258,9 @@
     <div class="nav-item" onclick="showSection('products')" id="nav-products">
       <span class="nav-icon">🛍️</span> Products
     </div>
+    <div class="nav-item" onclick="showSection('iam')" id="nav-iam">
+      <span class="nav-icon">🔐</span> IAM
+    </div>
     <div class="nav-item" onclick="showSection('about')" id="nav-about">
       <span class="nav-icon">ℹ️</span> About
     </div>
@@ -329,6 +332,80 @@
             <tr><td colspan="3" class="empty">Loading…</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- IAM section -->
+    <div class="section" id="section-iam">
+      <div class="card">
+        <h2>IAM Enforcement</h2>
+        <p style="font-size:0.875rem;color:#555;line-height:1.65;margin-bottom:1.25rem;">
+          By default LocalStack is <strong>permissive</strong> — IAM policies are not evaluated,
+          so every API call succeeds regardless of what's in your Terraform.
+          This makes fast iteration easy, but means a missing permission won't surface until
+          you deploy to real AWS. <strong>IAM enforcement</strong> changes that:
+          LocalStack validates every call against the attached IAM policies, exactly
+          like production.
+        </p>
+        <div class="about-grid">
+          <div class="info-section">
+            <h3>Step 1 — Spot the gap (default, no enforcement)</h3>
+            <p style="margin-bottom:0.5rem;">The Terraform deployment ships with a <strong>deliberately incomplete</strong>
+            IAM policy: the <em>order-handler</em> Lambda role is missing
+            <code style="font-size:0.78rem">dynamodb:PutItem</code> on the orders table.</p>
+            <ul>
+              <li>Go to <strong>Orders</strong> and place an order — it works fine</li>
+              <li>Without enforcement, LocalStack lets the call through anyway</li>
+            </ul>
+          </div>
+          <div class="info-section">
+            <h3>Step 2 — Enable enforcement</h3>
+            <p style="margin-bottom:0.5rem;">Toggle <strong>IAM Enforcement</strong> in the sidebar
+            (or run <code style="font-size:0.78rem">make iam-enforce</code>).</p>
+            <ul>
+              <li>Try placing an order — it now fails with a 500 error</li>
+              <li>The Lambda gets <code style="font-size:0.78rem">AccessDeniedException</code> from DynamoDB</li>
+              <li>Open <strong>App Inspector</strong> (<code style="font-size:0.78rem">localhost:4566/_localstack/appinspector</code>) to see the denied call highlighted in red</li>
+            </ul>
+          </div>
+          <div class="info-section">
+            <h3>Step 3 — Fix the permission</h3>
+            <p style="margin-bottom:0.5rem;">Run <code style="font-size:0.78rem">make iam-fix</code> to attach an inline policy
+            granting the missing <code style="font-size:0.78rem">dynamodb:PutItem</code> action to the Lambda role:</p>
+            <pre style="font-size:0.75rem;background:#f5f5f5;padding:0.6rem 0.8rem;border-radius:6px;overflow:auto;margin-bottom:0.5rem;">awslocal iam put-role-policy \
+  --role-name lambda-exec-role \
+  --policy-name order-handler-putitem \
+  --policy-document file://03-iam-enforcement/policies/lambda-putitem-grant.json</pre>
+            <ul>
+              <li>Place an order again — the full pipeline succeeds</li>
+              <li>In a real workflow you'd fix the Terraform and redeploy</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Why this matters</h2>
+        <div class="about-grid">
+          <div class="info-section">
+            <h3>Shift-left security</h3>
+            <p>IAM mistakes are the #1 cause of "works locally, fails in prod" bugs.
+            LocalStack's enforcement mode lets you catch missing permissions on your
+            laptop — in seconds, not minutes after a prod deploy.</p>
+          </div>
+          <div class="info-section">
+            <h3>App Inspector</h3>
+            <p>Every denied call appears highlighted in the App Inspector UI.
+            You see exactly which principal, action, and resource was blocked —
+            far faster to diagnose than CloudTrail in a real account.</p>
+          </div>
+          <div class="info-section">
+            <h3>Lean policies</h3>
+            <p>With enforcement on you can use <em>least-privilege iteration</em>:
+            start with an empty policy, run your tests, add only the actions
+            that actually failed. The result is a tight, auditable IAM policy.</p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -459,6 +536,21 @@ flowchart LR
       <p class="sidebar-hint">
         Injects <code>ProvisionedThroughputExceededException</code> on
         DynamoDB <code>UpdateItem</code> — simulates a throttling incident.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>IAM Enforcement</h2>
+      <div class="chaos-row">
+        <span class="chaos-status off" id="iam-status-label">Off</span>
+        <label class="toggle-switch" title="Toggle IAM policy enforcement">
+          <input type="checkbox" id="iam-toggle" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <p class="sidebar-hint" id="iam-hint">
+        When on, LocalStack enforces IAM policies. The Lambda role is missing
+        <code>dynamodb:PutItem</code> — run <code>make iam-fix</code> to grant it.
       </p>
     </div>
 
@@ -633,6 +725,12 @@ flowchart LR
           quantity: parseInt(document.getElementById("quantity").value),
         }),
       });
+      if (!res.ok) {
+        const body = await res.text();
+        const iamHint = body.includes("AccessDenied") || res.status === 403
+          ? " (IAM AccessDeniedException — run make iam-fix)" : "";
+        throw new Error(`HTTP ${res.status}${iamHint}`);
+      }
       const data = await res.json();
       flash.className = "flash success";
       flash.textContent = `Order placed! ID: ${data.order_id}`;
@@ -718,10 +816,42 @@ flowchart LR
     }
   }
 
+  // ── IAM enforcement ───────────────────────────────────────────────────────
+
+  async function checkIAM() {
+    try {
+      const res  = await fetch(`${window.location.origin}/_localstack/config`);
+      const data = await res.json();
+      const on   = !!(data.ENFORCE_IAM && data.ENFORCE_IAM !== "0" && data.ENFORCE_IAM !== false);
+      const toggle = document.getElementById("iam-toggle");
+      const label  = document.getElementById("iam-status-label");
+      const hint   = document.getElementById("iam-hint");
+      toggle.checked    = on;
+      label.textContent = on ? "On" : "Off";
+      label.className   = "chaos-status " + (on ? "on" : "off");
+      hint.style.display = on ? "block" : "none";
+    } catch (_) {}
+  }
+
+  document.getElementById("iam-toggle").addEventListener("change", async function () {
+    try {
+      await fetch(`${window.location.origin}/_localstack/config`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ENFORCE_IAM: this.checked ? "1" : "0" }),
+      });
+      await checkIAM();
+    } catch (e) {
+      this.checked = !this.checked;
+    }
+  });
+
   // ── Init ──────────────────────────────────────────────────────────────────
 
   checkChaos();
   setInterval(checkChaos, 5000);
+  checkIAM();
+  setInterval(checkIAM, 5000);
   loadOrders();
   loadProducts();
 </script>
