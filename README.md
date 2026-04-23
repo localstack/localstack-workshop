@@ -4,7 +4,7 @@ Hands-on workshop: local serverless development with [LocalStack](https://locals
 
 **Duration:** ~3 hours  
 **Level:** Intermediate  
-**Prerequisites:** Docker, Python 3.10+, VS Code (for module 03)
+**Prerequisites:** Docker, Python 3.10+, Terraform, VS Code (for module 03)
 
 ---
 

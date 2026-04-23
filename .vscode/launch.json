@@ -12,7 +12,7 @@
       "pathMappings": [
         {
           "localRoot": "${workspaceFolder}/01-serverless-app/lambdas/order_handler",
-          "remoteRoot": "/var/task"
+          "remoteRoot": "/tmp/aws-toolkit-vscode/lambda/us-east-1/order-handler"
         }
       ]
     }

@@ -25,7 +25,7 @@
     "LOCALSTACK_APPINSPECTOR_DEV_ENABLE": "1",
     "LOCALSTACK_LAMBDA_DEBUG_MODE": "1",
     "LOCALSTACK_LAMBDA_DEBUG_MODE_CONFIG_PATH": "/tmp/ls-debug/lambda_debug_mode.yaml",
-    "LOCALSTACK_DOCKER_FLAGS": "-v /workspaces/localstack-workshop/.localstack:/tmp/ls-debug"
+    "DOCKER_FLAGS": "-v /workspaces/localstack-workshop/.localstack:/tmp/ls-debug"
   },
   "postStartCommand": "bash ./00-setup/setup.sh"
 }
