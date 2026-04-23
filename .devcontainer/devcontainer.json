@@ -21,7 +21,6 @@
     }
   },
   "remoteEnv": {
-    "LAMBDA_DOCKER_FLAGS": "-p 19891:19891",
     "LOCALSTACK_APPINSPECTOR_ENABLE": "1",
     "LOCALSTACK_APPINSPECTOR_DEV_ENABLE": "1"
   },

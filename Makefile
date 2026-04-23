@@ -10,12 +10,10 @@ help: ## Show this help
 # ── LocalStack ────────────────────────────────────────────────────────────────
 
 start: ## Start LocalStack in the background
-	LOCALSTACK_APPINSPECTOR_ENABLE=1 LOCALSTACK_APPINSPECTOR_DEV_ENABLE=1 \
-	  LAMBDA_DOCKER_FLAGS='-p 19891:19891' localstack start -d
+	LOCALSTACK_APPINSPECTOR_ENABLE=1 LOCALSTACK_APPINSPECTOR_DEV_ENABLE=1 localstack start -d
 
 debug-start: ## Start LocalStack with Lambda debug mode enabled (port 19891)
 	LOCALSTACK_APPINSPECTOR_ENABLE=1 LOCALSTACK_APPINSPECTOR_DEV_ENABLE=1 \
-	  LAMBDA_DOCKER_FLAGS='-p 19891:19891' \
 	  LAMBDA_DEBUG_MODE_CONFIG_PATH=$(PWD)/.localstack/lambda_debug_mode.yaml localstack start -d
 
 hot-reload: ## Switch order-handler to hot-reload mode (edits take effect immediately)
