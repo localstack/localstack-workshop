@@ -10,7 +10,22 @@ help: ## Show this help
 # ── LocalStack ────────────────────────────────────────────────────────────────
 
 start: ## Start LocalStack in the background
-	LOCALSTACK_APPINSPECTOR_ENABLE=1 LOCALSTACK_APPINSPECTOR_DEV_ENABLE=1 localstack start -d
+	LOCALSTACK_APPINSPECTOR_ENABLE=1 LOCALSTACK_APPINSPECTOR_DEV_ENABLE=1 \
+	  LAMBDA_DOCKER_FLAGS='-p 19891:19891' localstack start -d
+
+debug-start: ## Start LocalStack with Lambda debug mode enabled (port 19891)
+	LOCALSTACK_APPINSPECTOR_ENABLE=1 LOCALSTACK_APPINSPECTOR_DEV_ENABLE=1 \
+	  LAMBDA_DOCKER_FLAGS='-p 19891:19891' \
+	  LAMBDA_DEBUG_MODE_CONFIG_PATH=$(PWD)/.localstack/lambda_debug_mode.yaml localstack start -d
+
+hot-reload: ## Switch order-handler to hot-reload mode (edits take effect immediately)
+	awslocal lambda update-function-code \
+	  --function-name order-handler \
+	  --s3-bucket hot-reload \
+	  --s3-key $(PWD)/01-serverless-app/lambdas/order_handler
+
+hot-reload-off: ## Restore order-handler to the packaged ZIP (disable hot reload)
+	cd $(TERRAFORM_DIR) && tflocal apply -auto-approve -target=aws_lambda_function.order_handler
 
 stop: ## Stop LocalStack
 	localstack stop
@@ -111,6 +126,7 @@ iam-status: ## Show current IAM enforcement state and Lambda role policies
 publish-token: ## Upload LOCALSTACK_AUTH_TOKEN to S3 for workshop participants
 	bash scripts/publish-workshop-token.sh
 
-.PHONY: help start stop status logs setup init build deploy destroy redeploy outputs \
+.PHONY: help start stop status logs setup debug-start hot-reload hot-reload-off \
+        init build deploy destroy redeploy outputs \
         test test-fast open-ui api-endpoint inject-fault remove-fault replay-dlq \
         iam-enforce iam-off iam-fix iam-status publish-token

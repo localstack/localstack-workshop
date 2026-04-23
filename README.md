@@ -120,5 +120,8 @@ make replay-dlq     # Replay messages from the DLQ
 make iam-enforce    # Enable IAM policy enforcement
 make iam-fix        # Grant missing dynamodb:PutItem to the Lambda role
 make iam-off        # Disable IAM enforcement (permissive mode)
+make debug-start    # Start LocalStack with Lambda debug mode (port 19891)
+make hot-reload     # Switch order-handler to hot-reload mode
+make hot-reload-off # Restore order-handler to packaged ZIP
 make logs           # Tail LocalStack logs
 ```

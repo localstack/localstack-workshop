@@ -1,0 +1,4 @@
+functions:
+  order-handler:
+    debug-port: 19891
+    enforce-timeouts: false

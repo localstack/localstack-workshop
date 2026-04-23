@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "amazonwebservices.aws-toolkit-vscode",
+    "localstack.localstack",
+    "hashicorp.terraform",
+    "ms-python.python"
+  ]
+}

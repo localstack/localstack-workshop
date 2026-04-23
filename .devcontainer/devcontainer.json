@@ -10,7 +10,8 @@
       "extensions": [
         "amazonwebservices.aws-toolkit-vscode",
         "localstack.localstack",
-        "hashicorp.terraform"
+        "hashicorp.terraform",
+        "ms-python.python"
       ]
     },
     "codespaces": {
@@ -18,6 +19,11 @@
         "README.md"
       ]
     }
+  },
+  "remoteEnv": {
+    "LAMBDA_DOCKER_FLAGS": "-p 19891:19891",
+    "LOCALSTACK_APPINSPECTOR_ENABLE": "1",
+    "LOCALSTACK_APPINSPECTOR_DEV_ENABLE": "1"
   },
   "postStartCommand": "bash ./00-setup/setup.sh"
 }

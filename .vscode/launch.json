@@ -2,30 +2,19 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug order-handler (LocalStack)",
-      "type": "aws-sam",
-      "request": "direct-invoke",
-      "invokeTarget": {
-        "target": "code",
-        "lambdaHandler": "handler.handler",
-        "projectRoot": "${workspaceFolder}/01-serverless-app/lambdas/order_handler"
+      "name": "Attach to order-handler (LocalStack debug mode)",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 19891
       },
-      "lambda": {
-        "runtime": "python3.12",
-        "payload": {
-          "json": {
-            "body": "{\"item\": \"debug-test\", \"quantity\": 1}"
-          }
-        },
-        "environmentVariables": {
-          "ORDERS_TABLE": "orders",
-          "ORDERS_QUEUE_URL": "http://localhost:4566/000000000000/orders-queue",
-          "AWS_ENDPOINT_URL": "http://localhost:4566"
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}/01-serverless-app/lambdas/order_handler",
+          "remoteRoot": "/var/task"
         }
-      },
-      "sam": {
-        "localArguments": ["--debug-port", "5890"]
-      }
+      ]
     }
   ]
 }
