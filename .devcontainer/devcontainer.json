@@ -22,7 +22,9 @@
   },
   "remoteEnv": {
     "LOCALSTACK_APPINSPECTOR_ENABLE": "1",
-    "LOCALSTACK_APPINSPECTOR_DEV_ENABLE": "1"
+    "LOCALSTACK_APPINSPECTOR_DEV_ENABLE": "1",
+    "LAMBDA_DEBUG_MODE": "1",
+    "LAMBDA_DEBUG_MODE_CONFIG_PATH": "/workspaces/localstack-workshop/.localstack/lambda_debug_mode.yaml"
   },
   "postStartCommand": "bash ./00-setup/setup.sh"
 }
