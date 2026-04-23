@@ -1,4 +1,4 @@
 functions:
-  order-handler:
+  arn:aws:lambda:us-east-1:000000000000:function:order-handler:
     debug-port: 19891
     enforce-timeouts: false
