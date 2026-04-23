@@ -17,20 +17,22 @@ flowchart LR
     Browser -->|POST /orders| APIGW[API Gateway]
     APIGW --> OH[Lambda\norder-handler]
     OH -->|put_item| DDB[(DynamoDB\norders)]
+    OH -->|scan| PDDB[(DynamoDB\nproducts)]
     OH -->|send_message| SQS[SQS Queue]
     SQS -->|on failure ×3| DLQ[SQS DLQ]
     SQS --> OP[Lambda\norder-processor]
     OP -->|start_execution| SFN[Step Functions]
-    SFN --> V[Validate]
-    SFN --> P[Payment]
-    SFN --> F[Fulfill]
+    SFN --> V[Validate\nLambda]
+    SFN --> P[Payment\nLambda]
+    SFN -->|runTask| ECS[ECS Fargate\nfulfillment]
     V -->|update status| DDB
     P -->|update status| DDB
-    F -->|update status| DDB
-    F -->|put_object| S3[(S3\nReceipts)]
+    ECS -->|update status| DDB
+    ECS -->|put_object| S3[(S3\nReceipts)]
 
     style DLQ fill:#fde8e8,stroke:#e8412a,color:#c0392b
     style SFN fill:#e0d7ff,stroke:#4a1a8a,color:#4a1a8a
+    style ECS fill:#d7f0e0,stroke:#1a7a40,color:#1a7a40
 ```
 
 The UI is served from S3 and shows live order status, pipeline progress, and step-level timestamps. Everything runs **locally** via LocalStack — no AWS account needed.
@@ -44,7 +46,7 @@ The UI is served from S3 and shows live order status, pipeline progress, and ste
 | [00](./00-setup/) | Setup | Install tools, start LocalStack, verify | 15m |
 | [01](./01-serverless-app/) | Serverless App | Deploy with Terraform, explore the UI | 45m |
 | [02](./02-e2e-testing/) | E2E Testing | pytest integration tests against LocalStack | 30m |
-| [03](./03-vscode-debugging/) | Lambda Debugging | VS Code AWS Toolkit breakpoints | 30m |
+| [03](./03-iam-enforcement/) | IAM Enforcement | Permissive vs. enforced mode, least-privilege iteration | 30m |
 | [04](./04-chaos-engineering/) | Chaos Engineering | DDB fault injection, DLQ, retries | 30m |
 | [05](./05-app-inspector/) | App Inspector | Trace requests, visualize service topology | 20m |
 | [06](./06-ai-integration/) | AI Integration *(optional)* | LocalStack MCP + Claude Code skills | 10m |
@@ -93,7 +95,7 @@ localstack-workshop/
 │   ├── terraform/             # infrastructure as code
 │   └── website/               # S3-hosted UI (HTML/JS, no build step)
 ├── 02-e2e-testing/        # pytest test suite
-├── 03-vscode-debugging/   # VS Code launch configs + instructions
+├── 03-iam-enforcement/    # IAM enforcement demo & fix policy
 ├── 04-chaos-engineering/  # fault injection scripts & DLQ replay
 ├── 05-app-inspector/      # App Inspector walkthrough
 ├── 06-ai-integration/     # MCP server + LocalStack skills demo
@@ -115,5 +117,8 @@ make test           # Run E2E integration tests
 make inject-fault   # Inject DynamoDB throttling fault (chaos demo)
 make remove-fault   # Remove all active fault injections
 make replay-dlq     # Replay messages from the DLQ
+make iam-enforce    # Enable IAM policy enforcement
+make iam-fix        # Grant missing dynamodb:PutItem to the Lambda role
+make iam-off        # Disable IAM enforcement (permissive mode)
 make logs           # Tail LocalStack logs
 ```

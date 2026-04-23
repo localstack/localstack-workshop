@@ -423,18 +423,19 @@
 flowchart LR
     Browser -->|POST /orders| APIGW[API Gateway]
     APIGW --> OH[Lambda\norder-handler]
-    OH -->|put_item| DDB[(DynamoDB)]
+    OH -->|put_item| DDB[(DynamoDB\norders)]
+    OH -->|scan| PDDB[(DynamoDB\nproducts)]
     OH -->|send_message| SQS[SQS Queue]
     SQS -->|on failure x3| DLQ[SQS DLQ]
     SQS --> OP[Lambda\norder-processor]
     OP -->|start_execution| SFN[Step Functions]
-    SFN --> V[Validate]
-    SFN --> P[Payment]
-    SFN --> F[Fulfill]
+    SFN --> V[Validate\nLambda]
+    SFN --> P[Payment\nLambda]
+    SFN -->|runTask| ECS[ECS Fargate\nfulfillment]
     V -->|update status| DDB
     P -->|update status| DDB
-    F -->|update status| DDB
-    F -->|put_object| S3[(S3 Receipts)]
+    ECS -->|update status| DDB
+    ECS -->|put_object| S3[(S3 Receipts)]
         </div>
       </div>
 
