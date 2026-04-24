@@ -4,7 +4,7 @@ Hands-on workshop: local serverless development with [LocalStack](https://locals
 
 **Duration:** ~3 hours  
 **Level:** Intermediate  
-**Prerequisites:** Docker, Python 3.10+, Terraform, VS Code (for module 03)
+**Prerequisites:** Docker, Python 3.10+, Terraform, VS Code (for Lambda debugging)
 
 ---
 
@@ -96,6 +96,7 @@ localstack-workshop/
 │   └── website/               # S3-hosted UI (HTML/JS, no build step)
 ├── 02-e2e-testing/        # pytest test suite
 ├── 03-iam-enforcement/    # IAM enforcement demo & fix policy
+├── 03-vscode-debugging/   # Lambda remote debugging with VS Code AWS Toolkit
 ├── 04-chaos-engineering/  # fault injection scripts & DLQ replay
 ├── 05-app-inspector/      # App Inspector walkthrough
 ├── 06-ai-integration/     # MCP server + LocalStack skills demo

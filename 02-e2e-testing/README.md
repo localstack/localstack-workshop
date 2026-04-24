@@ -46,4 +46,4 @@ awslocal sqs get-queue-attributes \
 
 ---
 
-Next: [Module 03 — Lambda Debugging](../03-vscode-debugging/README.md)
+Next: [Module 03 — IAM Enforcement](../03-iam-enforcement/README.md)

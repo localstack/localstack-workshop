@@ -14,8 +14,8 @@ start: ## Start LocalStack in the background
 
 debug-start: ## Start LocalStack with Lambda debug mode enabled (port 19891)
 	LOCALSTACK_APPINSPECTOR_ENABLE=1 LOCALSTACK_APPINSPECTOR_DEV_ENABLE=1 \
-	  LAMBDA_DEBUG_MODE=1 \
-	  LOCALSTACK_DOCKER_FLAGS="-v $(PWD)/.localstack:/tmp/ls-debug" \
+	  LOCALSTACK_LAMBDA_DEBUG_MODE=1 \
+	  DOCKER_FLAGS="-v $(PWD)/.localstack:/tmp/ls-debug" \
 	  LAMBDA_DEBUG_MODE_CONFIG_PATH=/tmp/ls-debug/lambda_debug_mode.yaml localstack start -d
 
 hot-reload: ## Switch order-handler to hot-reload mode (edits take effect immediately)
