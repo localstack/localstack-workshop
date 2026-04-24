@@ -23,6 +23,8 @@
   "remoteEnv": {
     "LOCALSTACK_APPINSPECTOR_ENABLE": "1",
     "LOCALSTACK_APPINSPECTOR_DEV_ENABLE": "1",
+    "LOCALSTACK_APP_INSPECTOR": "1",
+    "LOCALSTACK_APPINSPECTOR": "1",
     "LOCALSTACK_LAMBDA_DEBUG_MODE": "1",
     "LOCALSTACK_LAMBDA_DEBUG_MODE_CONFIG_PATH": "/tmp/ls-debug/lambda_debug_mode.yaml",
     "DOCKER_FLAGS": "-v /workspaces/localstack-workshop/.localstack:/tmp/ls-debug"
