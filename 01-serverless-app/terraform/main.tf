@@ -227,6 +227,11 @@ resource "aws_iam_role_policy" "lambda_policy" {
     Version = "2012-10-17"
     Statement = [
       {
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "arn:aws:logs:*:*:*"
+      },
+      {
         # dynamodb:PutItem intentionally omitted for orders — see 03-iam-enforcement for the IAM demo
         Effect   = "Allow"
         Action   = ["dynamodb:UpdateItem", "dynamodb:GetItem", "dynamodb:Scan"]
