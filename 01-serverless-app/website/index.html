@@ -238,6 +238,27 @@
     .order-id  { font-family: monospace; font-size: 0.78rem; color: #888; }
     .timestamp { font-size: 0.78rem; color: #999; white-space: nowrap; }
     .empty     { text-align: center; color: #aaa; padding: 2rem; }
+
+    /* ── Delete button ── */
+    .btn-delete {
+      padding: 0.2rem 0.55rem; background: transparent; color: #bbb;
+      border: 1px solid #e0e0e0; border-radius: 5px; cursor: pointer; font-size: 0.8rem;
+      line-height: 1;
+    }
+    .btn-delete:hover { background: #fde8e8; color: #c0392b; border-color: #f5c6c2; }
+
+    /* ── IAM action buttons ── */
+    .iam-btn-row { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.75rem; }
+    .btn-iam {
+      padding: 0.4rem 1rem; border: none; border-radius: 6px;
+      font-size: 0.85rem; cursor: pointer; font-weight: 500;
+    }
+    .btn-iam.enforce { background: #e8412a; color: #fff; }
+    .btn-iam.enforce:hover { background: #c73520; }
+    .btn-iam.fix     { background: #1a7a40; color: #fff; }
+    .btn-iam.fix:hover { background: #155f32; }
+    .btn-iam.off     { background: #f0f0f0; color: #555; }
+    .btn-iam.off:hover { background: #e0e0e0; }
   </style>
 </head>
 <body>
@@ -319,6 +340,26 @@
     <!-- Products section -->
     <div class="section" id="section-products">
       <div class="card">
+        <h2>Add Product</h2>
+        <form id="product-form">
+          <label>
+            Name
+            <input type="text" id="p-name" placeholder="e.g. LocalStack Mug" required style="width:180px;" />
+          </label>
+          <label>
+            Description
+            <input type="text" id="p-desc" placeholder="Short description" style="width:220px;" />
+          </label>
+          <label>
+            Price ($)
+            <input type="number" id="p-price" value="9.99" min="0" step="0.01" style="width:90px;" required />
+          </label>
+          <button type="submit" id="product-submit-btn">Add Product</button>
+        </form>
+        <div class="flash" id="product-flash"></div>
+      </div>
+
+      <div class="card">
         <h2>Products</h2>
         <table>
           <thead>
@@ -326,10 +367,11 @@
               <th>Name</th>
               <th>Description</th>
               <th>Price</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="products-body">
-            <tr><td colspan="3" class="empty">Loading…</td></tr>
+            <tr><td colspan="4" class="empty">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -361,22 +403,26 @@
           <div class="info-section">
             <h3>Step 2 — Enable enforcement</h3>
             <p style="margin-bottom:0.5rem;">Toggle <strong>IAM Enforcement</strong> in the sidebar
-            (or run <code style="font-size:0.78rem">make iam-enforce</code>).</p>
+            or click below:</p>
             <ul>
               <li>Try placing an order — it now fails with a 500 error</li>
               <li>The Lambda gets <code style="font-size:0.78rem">AccessDeniedException</code> from DynamoDB</li>
               <li>Open <strong>App Inspector</strong> (<code style="font-size:0.78rem">localhost:4566/_localstack/appinspector</code>) to see the denied call highlighted in red</li>
             </ul>
+            <div class="iam-btn-row">
+              <button class="btn-iam enforce" onclick="iamEnforce()">Enable Enforcement</button>
+              <button class="btn-iam off" onclick="iamOff()">Disable Enforcement</button>
+            </div>
           </div>
           <div class="info-section">
             <h3>Step 3 — Fix the permission</h3>
-            <p style="margin-bottom:0.5rem;">Run <code style="font-size:0.78rem">make iam-fix</code> to attach an inline policy
-            granting the missing <code style="font-size:0.78rem">dynamodb:PutItem</code> action to the Lambda role:</p>
-            <pre style="font-size:0.75rem;background:#f5f5f5;padding:0.6rem 0.8rem;border-radius:6px;overflow:auto;margin-bottom:0.5rem;">awslocal iam put-role-policy \
-  --role-name lambda-exec-role \
-  --policy-name order-handler-putitem \
-  --policy-document file://03-iam-enforcement/policies/lambda-putitem-grant.json</pre>
-            <ul>
+            <p style="margin-bottom:0.5rem;">Grant the missing <code style="font-size:0.78rem">dynamodb:PutItem</code> to the Lambda role, or remove it to reproduce the error:</p>
+            <div class="iam-btn-row">
+              <button class="btn-iam fix" onclick="iamFix()">Grant PutItem</button>
+              <button class="btn-iam off" onclick="iamRevoke()">Revoke PutItem</button>
+            </div>
+            <div class="flash" id="iam-action-flash" style="margin-top:0.6rem;"></div>
+            <ul style="margin-top:0.6rem;">
               <li>Place an order again — the full pipeline succeeds</li>
               <li>In a real workflow you'd fix the Terraform and redeploy</li>
             </ul>
@@ -797,13 +843,11 @@ flowchart LR
       const res = await fetch(`${API}/products`);
       productsCache = await res.json();
 
-      // Populate order form dropdown
       const sel = document.getElementById("item");
       sel.innerHTML = productsCache.map(p =>
         `<option value="${escHtml(p.name)}">${escHtml(p.name)} — $${Number(p.price).toFixed(2)}</option>`
       ).join("");
 
-      // Populate products table
       const tbody = document.getElementById("products-body");
       if (productsCache.length) {
         tbody.innerHTML = productsCache.map(p => `
@@ -811,15 +855,57 @@ flowchart LR
             <td><strong>${escHtml(p.name)}</strong></td>
             <td style="color:#666;font-size:0.85rem;">${escHtml(p.description)}</td>
             <td style="font-family:monospace;">$${Number(p.price).toFixed(2)}</td>
+            <td><button class="btn-delete" onclick="deleteProduct('${escHtml(p.product_id)}', this)" title="Delete product">✕</button></td>
           </tr>`).join("");
       } else {
-        tbody.innerHTML = '<tr><td colspan="3" class="empty">No products found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="empty">No products found.</td></tr>';
       }
     } catch (e) {
       document.getElementById("products-body").innerHTML =
-        '<tr><td colspan="3" class="empty">Error loading products.</td></tr>';
+        '<tr><td colspan="4" class="empty">Error loading products.</td></tr>';
     }
   }
+
+  async function deleteProduct(productId, btn) {
+    btn.disabled = true;
+    try {
+      await fetch(`${API}/products/${encodeURIComponent(productId)}`, { method: "DELETE" });
+      await loadProducts();
+    } catch (e) {
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById("product-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn   = document.getElementById("product-submit-btn");
+    const flash = document.getElementById("product-flash");
+    btn.disabled = true;
+    flash.className = "flash";
+    try {
+      const res = await fetch(`${API}/products`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name:        document.getElementById("p-name").value.trim(),
+          description: document.getElementById("p-desc").value.trim(),
+          price:       parseFloat(document.getElementById("p-price").value),
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      flash.className = "flash success";
+      flash.textContent = "Product added!";
+      document.getElementById("p-name").value  = "";
+      document.getElementById("p-desc").value  = "";
+      document.getElementById("p-price").value = "9.99";
+      await loadProducts();
+    } catch (err) {
+      flash.className = "flash error";
+      flash.textContent = `Error: ${err.message}`;
+    } finally {
+      btn.disabled = false;
+    }
+  });
 
   // ── IAM enforcement ───────────────────────────────────────────────────────
 
@@ -850,6 +936,53 @@ flowchart LR
       this.checked = !this.checked;
     }
   });
+
+  // ── IAM actions ──────────────────────────────────────────────────────────
+
+  function iamFlash(msg, type) {
+    const el = document.getElementById("iam-action-flash");
+    el.className = `flash ${type}`;
+    el.textContent = msg;
+    setTimeout(() => { el.className = "flash"; }, 4000);
+  }
+
+  async function iamEnforce() {
+    try {
+      await fetch(`${window.location.origin}/_aws/iam/config`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state: "ENFORCED" }),
+      });
+      await checkIAM();
+      iamFlash("IAM enforcement enabled.", "success");
+    } catch (e) { iamFlash("Request failed.", "error"); }
+  }
+
+  async function iamOff() {
+    try {
+      await fetch(`${window.location.origin}/_aws/iam/config`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state: "ENGINE_ONLY" }),
+      });
+      await checkIAM();
+      iamFlash("IAM enforcement disabled.", "success");
+    } catch (e) { iamFlash("Request failed.", "error"); }
+  }
+
+  async function iamFix() {
+    try {
+      const res = await fetch(`${API}/iam/fix`, { method: "POST" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      iamFlash("dynamodb:PutItem granted to lambda-exec-role.", "success");
+    } catch (e) { iamFlash(`Request failed: ${e.message}`, "error"); }
+  }
+
+  async function iamRevoke() {
+    try {
+      const res = await fetch(`${API}/iam/revoke`, { method: "POST" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      iamFlash("dynamodb:PutItem revoked from lambda-exec-role.", "success");
+    } catch (e) { iamFlash(`Request failed: ${e.message}`, "error"); }
+  }
 
   // ── Init ──────────────────────────────────────────────────────────────────
 

@@ -121,6 +121,18 @@ iam-status: ## Show current IAM enforcement state and Lambda role policies
 	@echo "=== Lambda role policies ===" && \
 	  awslocal iam list-role-policies --role-name lambda-exec-role
 
+# ── State ─────────────────────────────────────────────────────────────────────
+
+STATE_FILE ?= localstack-state.zip
+
+save-state: ## Export LocalStack state to $(STATE_FILE)
+	localstack state export $(STATE_FILE)
+	@echo "State saved to $(STATE_FILE)"
+
+load-state: ## Import LocalStack state from $(STATE_FILE)
+	localstack state import $(STATE_FILE)
+	@echo "State loaded from $(STATE_FILE)"
+
 # ── Token ─────────────────────────────────────────────────────────────────────
 
 publish-token: ## Upload LOCALSTACK_AUTH_TOKEN to S3 for workshop participants
@@ -129,4 +141,5 @@ publish-token: ## Upload LOCALSTACK_AUTH_TOKEN to S3 for workshop participants
 .PHONY: help start stop status logs setup debug-start hot-reload hot-reload-off \
         init build deploy destroy redeploy outputs \
         test test-fast open-ui api-endpoint inject-fault remove-fault replay-dlq \
-        iam-enforce iam-off iam-fix iam-status publish-token
+        iam-enforce iam-off iam-fix iam-status \
+        save-state load-state publish-token

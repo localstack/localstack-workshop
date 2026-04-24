@@ -181,6 +181,32 @@ resource "aws_sqs_queue" "orders" {
 
 # ── IAM ───────────────────────────────────────────────────────────────────────
 
+resource "aws_iam_role" "apigw_exec" {
+  name = "apigw-exec-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "apigateway.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "apigw_invoke_lambda" {
+  role = aws_iam_role.apigw_exec.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "lambda:InvokeFunction"
+      Resource = aws_lambda_function.order_handler.arn
+    }]
+  })
+}
+
 resource "aws_iam_role" "lambda_exec" {
   name = "lambda-exec-role"
 
@@ -201,10 +227,20 @@ resource "aws_iam_role_policy" "lambda_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        # dynamodb:PutItem intentionally omitted — see 03-iam-enforcement for the IAM demo
+        # dynamodb:PutItem intentionally omitted for orders — see 03-iam-enforcement for the IAM demo
         Effect   = "Allow"
         Action   = ["dynamodb:UpdateItem", "dynamodb:GetItem", "dynamodb:Scan"]
         Resource = [aws_dynamodb_table.orders.arn, aws_dynamodb_table.products.arn]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["dynamodb:PutItem", "dynamodb:DeleteItem"]
+        Resource = aws_dynamodb_table.products.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["iam:PutRolePolicy", "iam:DeleteRolePolicy"]
+        Resource = aws_iam_role.lambda_exec.arn
       },
       {
         Effect   = "Allow"
@@ -448,6 +484,7 @@ resource "aws_api_gateway_integration" "post_order_handler" {
   http_method             = aws_api_gateway_method.post_order.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
+  credentials             = aws_iam_role.apigw_exec.arn
   uri                     = aws_lambda_function.order_handler.invoke_arn
 }
 
@@ -457,6 +494,7 @@ resource "aws_api_gateway_integration" "get_orders_handler" {
   http_method             = aws_api_gateway_method.get_orders.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
+  credentials             = aws_iam_role.apigw_exec.arn
   uri                     = aws_lambda_function.order_handler.invoke_arn
 }
 
@@ -466,6 +504,7 @@ resource "aws_api_gateway_integration" "options_order_handler" {
   http_method             = aws_api_gateway_method.options_orders.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
+  credentials             = aws_iam_role.apigw_exec.arn
   uri                     = aws_lambda_function.order_handler.invoke_arn
 }
 
@@ -495,6 +534,7 @@ resource "aws_api_gateway_integration" "get_products_handler" {
   http_method             = aws_api_gateway_method.get_products.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
+  credentials             = aws_iam_role.apigw_exec.arn
   uri                     = aws_lambda_function.order_handler.invoke_arn
 }
 
@@ -504,6 +544,116 @@ resource "aws_api_gateway_integration" "options_products_handler" {
   http_method             = aws_api_gateway_method.options_products.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
+  credentials             = aws_iam_role.apigw_exec.arn
+  uri                     = aws_lambda_function.order_handler.invoke_arn
+}
+
+resource "aws_api_gateway_method" "post_product" {
+  rest_api_id   = aws_api_gateway_rest_api.orders_api.id
+  resource_id   = aws_api_gateway_resource.products.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "post_product_handler" {
+  rest_api_id             = aws_api_gateway_rest_api.orders_api.id
+  resource_id             = aws_api_gateway_resource.products.id
+  http_method             = aws_api_gateway_method.post_product.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  credentials             = aws_iam_role.apigw_exec.arn
+  uri                     = aws_lambda_function.order_handler.invoke_arn
+}
+
+resource "aws_api_gateway_resource" "product_id" {
+  rest_api_id = aws_api_gateway_rest_api.orders_api.id
+  parent_id   = aws_api_gateway_resource.products.id
+  path_part   = "{product_id}"
+}
+
+resource "aws_api_gateway_method" "delete_product" {
+  rest_api_id   = aws_api_gateway_rest_api.orders_api.id
+  resource_id   = aws_api_gateway_resource.product_id.id
+  http_method   = "DELETE"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "delete_product_handler" {
+  rest_api_id             = aws_api_gateway_rest_api.orders_api.id
+  resource_id             = aws_api_gateway_resource.product_id.id
+  http_method             = aws_api_gateway_method.delete_product.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  credentials             = aws_iam_role.apigw_exec.arn
+  uri                     = aws_lambda_function.order_handler.invoke_arn
+}
+
+resource "aws_api_gateway_method" "options_product_id" {
+  rest_api_id   = aws_api_gateway_rest_api.orders_api.id
+  resource_id   = aws_api_gateway_resource.product_id.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "options_product_id_handler" {
+  rest_api_id             = aws_api_gateway_rest_api.orders_api.id
+  resource_id             = aws_api_gateway_resource.product_id.id
+  http_method             = aws_api_gateway_method.options_product_id.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  credentials             = aws_iam_role.apigw_exec.arn
+  uri                     = aws_lambda_function.order_handler.invoke_arn
+}
+
+resource "aws_api_gateway_resource" "iam" {
+  rest_api_id = aws_api_gateway_rest_api.orders_api.id
+  parent_id   = aws_api_gateway_rest_api.orders_api.root_resource_id
+  path_part   = "iam"
+}
+
+resource "aws_api_gateway_resource" "iam_fix" {
+  rest_api_id = aws_api_gateway_rest_api.orders_api.id
+  parent_id   = aws_api_gateway_resource.iam.id
+  path_part   = "fix"
+}
+
+resource "aws_api_gateway_method" "post_iam_fix" {
+  rest_api_id   = aws_api_gateway_rest_api.orders_api.id
+  resource_id   = aws_api_gateway_resource.iam_fix.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "post_iam_fix_handler" {
+  rest_api_id             = aws_api_gateway_rest_api.orders_api.id
+  resource_id             = aws_api_gateway_resource.iam_fix.id
+  http_method             = aws_api_gateway_method.post_iam_fix.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  credentials             = aws_iam_role.apigw_exec.arn
+  uri                     = aws_lambda_function.order_handler.invoke_arn
+}
+
+resource "aws_api_gateway_resource" "iam_revoke" {
+  rest_api_id = aws_api_gateway_rest_api.orders_api.id
+  parent_id   = aws_api_gateway_resource.iam.id
+  path_part   = "revoke"
+}
+
+resource "aws_api_gateway_method" "post_iam_revoke" {
+  rest_api_id   = aws_api_gateway_rest_api.orders_api.id
+  resource_id   = aws_api_gateway_resource.iam_revoke.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "post_iam_revoke_handler" {
+  rest_api_id             = aws_api_gateway_rest_api.orders_api.id
+  resource_id             = aws_api_gateway_resource.iam_revoke.id
+  http_method             = aws_api_gateway_method.post_iam_revoke.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  credentials             = aws_iam_role.apigw_exec.arn
   uri                     = aws_lambda_function.order_handler.invoke_arn
 }
 
@@ -533,6 +683,7 @@ resource "aws_api_gateway_integration" "post_replay_handler" {
   http_method             = aws_api_gateway_method.post_replay.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
+  credentials             = aws_iam_role.apigw_exec.arn
   uri                     = aws_lambda_function.order_handler.invoke_arn
 }
 
@@ -542,6 +693,7 @@ resource "aws_api_gateway_integration" "options_replay_handler" {
   http_method             = aws_api_gateway_method.options_replay.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
+  credentials             = aws_iam_role.apigw_exec.arn
   uri                     = aws_lambda_function.order_handler.invoke_arn
 }
 
@@ -565,6 +717,11 @@ resource "aws_api_gateway_deployment" "orders_api" {
       aws_api_gateway_integration.options_replay_handler.id,
       aws_api_gateway_integration.get_products_handler.id,
       aws_api_gateway_integration.options_products_handler.id,
+      aws_api_gateway_integration.post_product_handler.id,
+      aws_api_gateway_integration.delete_product_handler.id,
+      aws_api_gateway_integration.options_product_id_handler.id,
+      aws_api_gateway_integration.post_iam_fix_handler.id,
+      aws_api_gateway_integration.post_iam_revoke_handler.id,
     ]))
   }
 
@@ -576,6 +733,11 @@ resource "aws_api_gateway_deployment" "orders_api" {
     aws_api_gateway_integration.options_replay_handler,
     aws_api_gateway_integration.get_products_handler,
     aws_api_gateway_integration.options_products_handler,
+    aws_api_gateway_integration.post_product_handler,
+    aws_api_gateway_integration.delete_product_handler,
+    aws_api_gateway_integration.options_product_id_handler,
+    aws_api_gateway_integration.post_iam_fix_handler,
+    aws_api_gateway_integration.post_iam_revoke_handler,
   ]
 }
 
