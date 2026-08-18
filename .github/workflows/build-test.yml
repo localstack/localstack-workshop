@@ -15,7 +15,7 @@ jobs:
 
       - name: Install tools
         run: |
-          pip install --pre localstack awscli-local[ver1] terraform-local pytest requests
+          pip install --pre localstack awscli-local terraform-local pytest requests
 
           # Terraform
           curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
