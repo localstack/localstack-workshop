@@ -17,22 +17,6 @@ else
 fi
 
 echo ""
-echo "Configuring AWS CLI default profile for LocalStack..."
-mkdir -p "${HOME}/.aws"
-cat > "${HOME}/.aws/credentials" << 'EOF'
-[default]
-aws_access_key_id = test
-aws_secret_access_key = test
-EOF
-cat > "${HOME}/.aws/config" << 'EOF'
-[default]
-region = us-east-1
-endpoint_url = http://localhost:4566
-output = json
-EOF
-echo "AWS CLI profile configured."
-
-echo ""
 echo "Starting LocalStack..."
 localstack start -d
 
@@ -42,7 +26,7 @@ localstack wait -t 60
 
 echo ""
 echo "Verifying..."
-aws s3 ls > /dev/null && echo "OK: aws CLI connected (via default profile)"
+awslocal s3 ls > /dev/null && echo "OK: awslocal connected"
 curl -sf http://localhost:4566/_localstack/health | python3 -m json.tool | grep -q '"running"' && echo "OK: health check passed"
 
 echo ""
