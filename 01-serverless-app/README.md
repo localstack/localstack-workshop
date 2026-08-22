@@ -86,7 +86,7 @@ curl -s "$API/orders" | python3 -m json.tool
 awslocal dynamodb scan --table-name orders
 
 # Check S3 receipts
-awslocal s3 ls s3://order-receipts/
+awslocal s3 ls --recursive s3://order-receipts/
 ```
 
 ### Open the UI
